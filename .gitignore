@@ -7,18 +7,28 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Node.js dependencies
+node_modules/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
+# Build artifacts
+dist/
+dist-ssr/
+build/
+.vite/
+
+# Environment variables (CRUCIAL for security)
+.env
+.env.local
+.env.*.local
+
+# Local development files
+.vscode/ # VS Code settings (optional, but often useful to ignore)
+.idea # IntelliJ/WebStorm settings
+.DS_Store # macOS specific
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.tmp
+*.temp
