@@ -1,0 +1,11 @@
+/* src/styles/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Any minimal global styles that are not easily handled by Tailwind can go here. */
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+}
