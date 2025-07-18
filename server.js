@@ -1,15 +1,15 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import fetch from 'node-fetch';
+import 'dotenv/config'; // Loads .env file at startup
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Use Render's PORT environment variable
+const PORT = process.env.PORT || 3000;
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY; // Use server's env variable
+const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 app.use(express.json());
-app.use(cors({ origin: 'https://chefbonbon.netlify.app' })); // This is crucial for CORS
+app.use(cors({ origin: 'https://chefbonbon.netlify.app' }));
 
 app.post('/claude-proxy', async (req, res) => {
     try {
