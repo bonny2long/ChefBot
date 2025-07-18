@@ -1,5 +1,5 @@
 Chef BonBon: AI-Powered Recipe Generator
-Chef BonBon is a modern web application that leverages AI to generate unique recipes based on user-provided ingredients. Users can explore a public feed of shared recipes, save their favorite recipes, like recipes, and manage their own culinary creations. The application features robust user authentication, including anonymous browsing and persistent user profiles.
+Chef BonBon is a modern web application that leverages AI to generate unique recipes based on user-provided ingredients. Users can explore a public feed of shared recipes, save their favorite recipes, like recipes, and manage their own culinary creations. The application features robust user authentication and persistent user profiles.
 
 ✨ Features
 AI Recipe Generation: Input a list of ingredients, and Chef BonBon (powered by the Anthropic API) will generate a creative recipe.
@@ -41,7 +41,7 @@ Anthropic API: The AI model used for generating recipes.
 
 Database & Authentication:
 
-Firebase Authentication: For user management (email/password, anonymous).
+Firebase Authentication: For user management (email/password).
 
 Firestore: A NoSQL cloud database for storing user recipes, public recipes, likes, and user profiles.
 
