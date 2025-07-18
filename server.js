@@ -1,30 +1,23 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
-import 'dotenv/config'; 
+import 'dotenv/config'; // Loads .env file at startup
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-// Define a regex for allowed origins to include main domain and deploy previews
-// This regex matches:
-// - https://chefbonbon.netlify.app
-// - https://<any-subdomain>--chefbonbon.netlify.app (e.g., deploy previews)
+// Define a regex for allowed origins dynamically
 const allowedOriginRegex = /^https:\/\/(?:[a-zA-Z0-9-]+\.)?chefbonbon\.netlify\.app$/;
 
 // CORS middleware with dynamic origin checking using regex
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-
-    // Check if the origin matches our allowed regex
     if (allowedOriginRegex.test(origin)) {
-      callback(null, true); // Allow the origin
+      callback(null, true);
     } else {
-      // Block other origins and provide a helpful message
       const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}. Allowed pattern: ${allowedOriginRegex}`;
       callback(new Error(msg), false);
     }
@@ -55,6 +48,9 @@ app.post('/claude-proxy', async (req, res) => {
         });
 
         const data = await response.json();
+        console.log("Anthropic API Raw Response Data:", JSON.stringify(data, null, 2)); // <-- ADDED THIS LINE
+
+        // Pass the raw data directly back to the frontend
         res.json(data);
     } catch (error) {
         console.error('Error in proxy:', error);
