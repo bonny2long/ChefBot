@@ -1,7 +1,7 @@
 // src/utils/getRecipeFromClaude.js
 
 // Use the proxy server URL instead of the Anthropic API URL
-const API_URL = "http://localhost:3000/claude-proxy";
+const API_URL = "https://chef-bonbon-api.onrender.com/claude-proxy"; 
 const CLAUDE_MODEL = "claude-3-sonnet-20240229"; // A good balance model
 
 // Array of random Chef BonBon dialogs
