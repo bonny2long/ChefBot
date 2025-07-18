@@ -1,10 +1,10 @@
 // src/components/BurgerMenu.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { getAuth } from 'firebase/auth';
+// No direct Firebase imports needed here, as actions are passed via props
 
 export default function BurgerMenu({
   userId,
-  userName,
+  userName, // Added userName prop for display
   onLoginClick,
   onSignupClick,
   onLogoutClick,
@@ -38,7 +38,7 @@ export default function BurgerMenu({
     <div className="fixed top-4 right-4 z-50" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex flex-col justify-around w-8 h-8 bg-orange-600 rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500" // Changed to orange
+        className="relative flex flex-col justify-around w-8 h-8 bg-orange-600 rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
         aria-label="Toggle navigation menu"
       >
         <span className={`block h-0.5 w-full bg-white transform transition duration-300 ease-in-out ${isOpen ? 'rotate-45 translate-y-2.5' : ''}`}></span>

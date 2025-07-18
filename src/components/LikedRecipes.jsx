@@ -4,17 +4,14 @@ import {
   getPublicRecipesCollectionRef,
   query,
   onSnapshot,
-  auth,
   db,
   doc,
   collection,
   deleteDoc,
-  getDocs,
-  where,
   appId
 } from '../firebase';
 
-export default function LikedRecipes({ userId, onGoHomeClick }) {
+export default function LikedRecipes({ userId, onGoHomeClick, onViewPublicFeedClick, showMessageModal }) { // Added showMessageModal prop
   const [likedRecipes, setLikedRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,47 +37,76 @@ export default function LikedRecipes({ userId, onGoHomeClick }) {
 
     const q = query(publicRecipesCollectionRef);
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const fetchedLikedRecipes = [];
-      for (const recipeDoc of snapshot.docs) {
-        const recipeData = { id: recipeDoc.id, ...recipeDoc.data() };
-
-        const likesQuery = query(collection(db, `artifacts/${appId}/public/data/recipes/${recipeData.id}/likes`), where('userId', '==', userId));
-        const likesSnapshot = await getDocs(likesQuery);
-
-        if (!likesSnapshot.empty) {
-          recipeData.userLikeDocId = likesSnapshot.docs[0].id;
-          fetchedLikedRecipes.push(recipeData);
-        }
-      }
-      fetchedLikedRecipes.sort((a, b) => (b.sharedAt?.toDate() || 0) - (a.sharedAt?.toDate() || 0));
-      setLikedRecipes(fetchedLikedRecipes);
+    const unsubscribeRecipes = onSnapshot(q, async (snapshot) => {
+      const fetchedRecipes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        userLikeDocId: null, // Initialize, populated by onSnapshot
+      }));
+      setLikedRecipes(fetchedRecipes);
       setLoading(false);
+
+      // Set up real-time listeners for likes
+      const unsubscribeLikes = fetchedRecipes.map((recipe) => {
+        const likesRef = collection(db, `artifacts/${appId}/public/data/recipes/${recipe.id}/likes`);
+        return onSnapshot(likesRef, (likesSnapshot) => {
+          const likesData = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const userLike = likesData.find(like => like.userId === userId);
+          setLikedRecipes((prev) =>
+            prev
+              .map((r) =>
+                r.id === recipe.id
+                  ? { ...r, userLikeDocId: userLike ? userLike.id : null }
+                  : r
+              )
+              .filter((r) => r.userLikeDocId) // Only keep recipes the user has liked
+              .sort((a, b) => (b.sharedAt?.toDate() || 0) - (a.sharedAt?.toDate() || 0))
+          );
+        }, (err) => {
+          console.error(`Error listening to likes for recipe ${recipe.id}:`, err);
+          setError("Failed to load liked recipes.");
+        });
+      });
+
+      return () => {
+        unsubscribeRecipes();
+        unsubscribeLikes.forEach(unsubscribe => unsubscribe());
+      };
     }, (err) => {
       console.error("Error fetching liked recipes:", err);
       setError("Failed to load liked recipes. Please try again.");
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeRecipes();
   }, [userId]);
 
   const handleUnlike = async (recipeId, userLikeDocId) => {
     if (!userId) {
-      console.log("You must be logged in to unlike recipes.");
+      showMessageModal("Login Required", "Please log in to unlike recipes.");
       return;
     }
     setUnlikeStatus(prev => ({ ...prev, [recipeId]: 'Unliking...' }));
+
+    // Optimistic update: Remove recipe from UI
+    const recipeToRemove = likedRecipes.find(r => r.id === recipeId);
+    setLikedRecipes((prev) => prev.filter(r => r.id !== recipeId));
+
     try {
       const likeDocRef = doc(db, `artifacts/${appId}/public/data/recipes/${recipeId}/likes`, userLikeDocId);
       await deleteDoc(likeDocRef);
       setUnlikeStatus(prev => ({ ...prev, [recipeId]: 'Unliked!' }));
-      console.log("Recipe unliked:", recipeId);
       setTimeout(() => setUnlikeStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
     } catch (err) {
       console.error("Error unliking recipe:", err);
+      // Roll back optimistic update
+      setLikedRecipes((prev) => [
+        ...prev,
+        { ...recipeToRemove, userLikeDocId }, // Restore recipe
+      ].sort((a, b) => (b.sharedAt?.toDate() || 0) - (a.sharedAt?.toDate() || 0)));
       setUnlikeStatus(prev => ({ ...prev, [recipeId]: 'Failed to unlike.' }));
       setTimeout(() => setUnlikeStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
+      showMessageModal("Error", "Failed to unlike recipe: " + err.message);
     }
   };
 
@@ -94,14 +120,12 @@ export default function LikedRecipes({ userId, onGoHomeClick }) {
 
   return (
     <section className="p-8 md:p-16 w-full max-w-3xl mx-auto">
-      {/* Changed heading color to orange */}
       <h2 className="text-2xl font-bold text-orange-600 mb-6">Your Liked Recipes</h2>
       {likedRecipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center mt-8">
           <p className="text-center text-gray-600 mb-4">You haven't liked any recipes yet.</p>
-          {/* Ensure empty state button is orange */}
           <button
-            onClick={() => onGoHomeClick()}
+            onClick={() => onViewPublicFeedClick()}
             className="px-6 py-3 bg-orange-600 text-white rounded-md text-lg font-semibold hover:bg-orange-700 transition-colors shadow-md"
           >
             Explore Public Feed
@@ -122,7 +146,6 @@ export default function LikedRecipes({ userId, onGoHomeClick }) {
                 {recipe.recipeContent}
               </div>
 
-              {/* Unlike Button - remains red */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleUnlike(recipe.id, recipe.userLikeDocId)}

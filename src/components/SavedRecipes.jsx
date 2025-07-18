@@ -62,7 +62,7 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
 
   const handleDeleteRecipe = async (recipeId) => {
     if (!userId) {
-      console.log("You must be logged in to delete recipes.");
+   
       return;
     }
     setDeleteStatus(prev => ({ ...prev, [recipeId]: 'Deleting...' }));
@@ -70,7 +70,7 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
       const recipeDocRef = doc(db, `artifacts/${appId}/users/${userId}/recipes`, recipeId);
       await deleteDoc(recipeDocRef);
       setDeleteStatus(prev => ({ ...prev, [recipeId]: 'Deleted!' }));
-      console.log("Recipe deleted successfully:", recipeId);
+     
       setTimeout(() => setDeleteStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
     } catch (err) {
       console.error("Error deleting recipe:", err);
@@ -81,7 +81,7 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
 
   const handleShareRecipe = async (recipeId, currentIsPublic) => {
     if (!userId) {
-      console.log("You must be logged in to share recipes.");
+  
       return;
     }
 
@@ -102,12 +102,12 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
         if (!publicSnapshot.empty) {
           publicSnapshot.forEach(async (docToDelete) => {
             await deleteDoc(doc(db, publicRecipesCollectionRef.path, docToDelete.id));
-            console.log("Public copy deleted:", docToDelete.id);
+         
           });
         }
 
         setShareStatus(prev => ({ ...prev, [recipeId]: 'Unshared successfully!' }));
-        console.log("Recipe unshared successfully:", recipeId);
+    
       } else {
         await updateDoc(privateRecipeDocRef, { isPublic: true });
 
@@ -125,7 +125,7 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
           });
         }
         setShareStatus(prev => ({ ...prev, [recipeId]: 'Shared successfully!' }));
-        console.log("Recipe shared successfully:", recipeId);
+      
       }
       setTimeout(() => setShareStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
     } catch (err) {

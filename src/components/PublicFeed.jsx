@@ -15,7 +15,7 @@ import {
   appId
 } from '../firebase';
 
-export default function PublicFeed({ userId }) {
+export default function PublicFeed({ userId, showMessageModal }) {
   const [publicRecipes, setPublicRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,70 +36,141 @@ export default function PublicFeed({ userId }) {
 
     const q = query(publicRecipesCollectionRef);
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const fetchedPublicRecipes = [];
-      for (const recipeDoc of snapshot.docs) {
-        const recipeData = { id: recipeDoc.id, ...recipeDoc.data() };
-
-        // Fetch likes for this recipe
-        const likesQuery = query(collection(db, `artifacts/${appId}/public/data/recipes/${recipeData.id}/likes`));
-        const likesSnapshot = await getDocs(likesQuery);
-        recipeData.likes = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        recipeData.likeCount = likesSnapshot.size;
-        recipeData.hasLiked = userId ? likesSnapshot.docs.some(like => like.userId === userId) : false;
-
-        // Fetch comments for this recipe
-        const commentsQuery = query(collection(db, `artifacts/${appId}/public/data/recipes/${recipeData.id}/comments`));
-        const commentsSnapshot = await getDocs(commentsQuery);
-        recipeData.comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        recipeData.commentCount = commentsSnapshot.size;
-
-        fetchedPublicRecipes.push(recipeData);
-      }
+    const unsubscribeRecipes = onSnapshot(q, async (snapshot) => {
+      const fetchedPublicRecipes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        likes: [], // Initialize empty, populated by onSnapshot
+        comments: [], // Initialize empty
+        likeCount: 0,
+        commentCount: 0,
+        hasLiked: false,
+      }));
       fetchedPublicRecipes.sort((a, b) => (b.sharedAt?.toDate() || 0) - (a.sharedAt?.toDate() || 0));
       setPublicRecipes(fetchedPublicRecipes);
       setLoading(false);
+
+      // Set up real-time listeners for likes and comments
+      const unsubscribeSubcollections = fetchedPublicRecipes.map((recipe) => {
+        const likesRef = collection(db, `artifacts/${appId}/public/data/recipes/${recipe.id}/likes`);
+        const commentsRef = collection(db, `artifacts/${appId}/public/data/recipes/${recipe.id}/comments`);
+
+        const unsubscribeLikes = onSnapshot(likesRef, (likesSnapshot) => {
+          const likesData = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setPublicRecipes((prev) =>
+            prev.map((r) =>
+              r.id === recipe.id
+                ? {
+                    ...r,
+                    likes: likesData,
+                    likeCount: likesData.length,
+                    hasLiked: userId ? likesData.some(like => like.userId === userId) : false,
+                  }
+                : r
+            )
+          );
+        }, (err) => {
+          console.error(`Error listening to likes for recipe ${recipe.id}:`, err);
+          setError("Failed to load likes for a recipe.");
+        });
+
+        const unsubscribeComments = onSnapshot(commentsRef, (commentsSnapshot) => {
+          const commentsData = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setPublicRecipes((prev) =>
+            prev.map((r) =>
+              r.id === recipe.id
+                ? {
+                    ...r,
+                    comments: commentsData,
+                    commentCount: commentsData.length,
+                  }
+                : r
+            )
+          );
+        }, (err) => {
+          console.error(`Error listening to comments for recipe ${recipe.id}:`, err);
+          setError("Failed to load comments for a recipe.");
+        });
+
+        return [unsubscribeLikes, unsubscribeComments];
+      }).flat();
+
+      return () => {
+        unsubscribeRecipes();
+        unsubscribeSubcollections.forEach(unsubscribe => unsubscribe());
+      };
     }, (err) => {
       console.error("Error fetching public recipes:", err);
       setError("Failed to load public feed. Please try again.");
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeRecipes();
   }, [userId]);
 
   const handleLike = async (recipeId) => {
     if (!userId) {
-      console.log("Please log in to like recipes.");
+      showMessageModal("Login Required", "Please log in to like recipes.");
       return;
     }
 
+    // Optimistic update
+    const recipe = publicRecipes.find(r => r.id === recipeId);
+    const isCurrentlyLiked = recipe.hasLiked;
+    setPublicRecipes((prev) =>
+      prev.map((r) =>
+        r.id === recipeId
+          ? {
+              ...r,
+              hasLiked: !isCurrentlyLiked,
+              likeCount: isCurrentlyLiked ? r.likeCount - 1 : r.likeCount + 1,
+              likes: isCurrentlyLiked
+                ? r.likes.filter(like => like.userId !== userId)
+                : [...r.likes, { id: `temp-${Date.now()}`, userId, userName: auth.currentUser?.displayName || 'Anonymous', likedAt: new Date() }],
+            }
+          : r
+      )
+    );
+
     const likesCollectionRef = collection(db, `artifacts/${appId}/public/data/recipes/${recipeId}/likes`);
     const likeQuery = query(likesCollectionRef, where('userId', '==', userId));
-    const existingLikes = await getDocs(likeQuery);
-
     try {
+      const existingLikes = await getDocs(likeQuery);
       if (existingLikes.empty) {
         await addDoc(likesCollectionRef, {
           userId: userId,
           userName: auth.currentUser?.displayName || 'Anonymous',
-          likedAt: new Date()
+          likedAt: new Date(),
         });
-        console.log("Recipe liked:", recipeId);
       } else {
         existingLikes.forEach(async (likeDoc) => {
           await deleteDoc(doc(db, likesCollectionRef.path, likeDoc.id));
-          console.log("Recipe unliked:", recipeId);
         });
       }
     } catch (err) {
       console.error("Error liking/unliking recipe:", err);
+      // Roll back optimistic update
+      setPublicRecipes((prev) =>
+        prev.map((r) =>
+          r.id === recipeId
+            ? {
+                ...r,
+                hasLiked: isCurrentlyLiked,
+                likeCount: isCurrentlyLiked ? r.likeCount + 1 : r.likeCount - 1,
+                likes: isCurrentlyLiked
+                  ? [...r.likes, { id: `temp-${Date.now()}`, userId, userName: auth.currentUser?.displayName || 'Anonymous', likedAt: new Date() }]
+                  : r.likes.filter(like => like.userId !== userId),
+              }
+            : r
+        )
+      );
+      showMessageModal("Error", "Failed to update like: " + err.message);
     }
   };
 
   const handleCommentSubmit = async (recipeId) => {
     if (!userId) {
-      console.log("Please log in to comment.");
+      showMessageModal("Login Required", "Please log in to comment.");
       setCommentStatus(prev => ({ ...prev, [recipeId]: 'Please log in to comment.' }));
       setTimeout(() => setCommentStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
       return;
@@ -113,22 +184,54 @@ export default function PublicFeed({ userId }) {
 
     setCommentStatus(prev => ({ ...prev, [recipeId]: 'Posting...' }));
 
+    // Optimistic update
+    const tempComment = {
+      id: `temp-${Date.now()}`,
+      userId,
+      userName: auth.currentUser?.displayName || 'Anonymous',
+      comment: commentText,
+      createdAt: new Date(),
+    };
+    setPublicRecipes((prev) =>
+      prev.map((r) =>
+        r.id === recipeId
+          ? {
+              ...r,
+              comments: [...r.comments, tempComment],
+              commentCount: r.commentCount + 1,
+            }
+          : r
+      )
+    );
+    setCommentInput(prev => ({ ...prev, [recipeId]: '' }));
+
     try {
       const commentsCollectionRef = collection(db, `artifacts/${appId}/public/data/recipes/${recipeId}/comments`);
       await addDoc(commentsCollectionRef, {
-        userId: userId,
+        userId,
         userName: auth.currentUser?.displayName || 'Anonymous',
         comment: commentText,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
-      setCommentInput(prev => ({ ...prev, [recipeId]: '' }));
       setCommentStatus(prev => ({ ...prev, [recipeId]: 'Comment posted!' }));
-      console.log("Comment posted for recipe:", recipeId);
       setTimeout(() => setCommentStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
     } catch (err) {
       console.error("Error posting comment:", err);
+      // Roll back optimistic update
+      setPublicRecipes((prev) =>
+        prev.map((r) =>
+          r.id === recipeId
+            ? {
+                ...r,
+                comments: r.comments.filter(c => c.id !== tempComment.id),
+                commentCount: r.commentCount - 1,
+              }
+            : r
+        )
+      );
       setCommentStatus(prev => ({ ...prev, [recipeId]: 'Failed to post comment.' }));
       setTimeout(() => setCommentStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
+      showMessageModal("Error", "Failed to post comment: " + err.message);
     }
   };
 
@@ -149,7 +252,6 @@ export default function PublicFeed({ userId }) {
 
   return (
     <section className="p-8 md:p-16 w-full max-w-3xl mx-auto">
-      {/* Changed heading color to orange */}
       <h2 className="text-2xl font-bold text-orange-600 mb-6">Public Recipe Feed</h2>
       {publicRecipes.length === 0 ? (
         <p className="text-center text-gray-600">No public recipes available yet. Share yours!</p>
@@ -193,7 +295,6 @@ export default function PublicFeed({ userId }) {
                   onClick={() => handleLike(recipe.id)}
                   disabled={!userId}
                   className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors ${
-                    // Changed liked state color to orange
                     recipe.hasLiked ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   } disabled:opacity-50`}
                 >
@@ -215,7 +316,9 @@ export default function PublicFeed({ userId }) {
                           <span className="font-medium">{comment.userName}:</span> {comment.comment}
                         </p>
                         <p className="text-gray-500 text-xs mt-1">
-                          {comment.createdAt?.toDate().toLocaleString()}
+                          {comment.createdAt instanceof Date
+                            ? comment.createdAt.toLocaleString()
+                            : comment.createdAt?.toDate?.().toLocaleString() || 'Unknown date'}
                         </p>
                       </div>
                     ))}
@@ -236,7 +339,7 @@ export default function PublicFeed({ userId }) {
                     <button
                       onClick={() => handleCommentSubmit(recipe.id)}
                       disabled={commentStatus[recipe.id] === 'Posting...' || !commentInput[recipe.id]?.trim()}
-                      className="px-4 py-2 bg-orange-600 text-white rounded-md text-sm hover:bg-orange-700 transition-colors disabled:opacity-50 self-end" // Changed to orange
+                      className="px-4 py-2 bg-orange-600 text-white rounded-md text-sm hover:bg-orange-700 transition-colors disabled:opacity-50 self-end"
                     >
                       {commentStatus[recipe.id] === 'Posting...' ? 'Posting...' : 'Post Comment'}
                     </button>

@@ -1,7 +1,9 @@
+// src/components/Main.jsx
 import React, { useState } from 'react';
 import IngredientsList from './IngredientsList';
 import { getRecipeFromClaude } from '../utils/getRecipeFromClaude';
 import { addDoc, getPrivateRecipesCollectionRef } from '../firebase';
+import LoadingSpinner from './LoadingSpinner'; // Updated component
 
 export default function Main({ userId, isAuthReady, showMessageModal }) {
   const [ingredients, setIngredients] = useState([]);
@@ -36,7 +38,7 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
       );
       return;
     }
-
+  
     setLoading(true);
     setRecipe(''); // Clear previous recipe
     setRecipeName(''); // Clear recipe name
@@ -46,8 +48,11 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
       setRecipe(result);
     } catch (error) {
       console.error("Error generating recipe:", error);
-      setRecipe("Failed to generate recipe. Please try again.");
-      setSaveStatus("Failed to generate recipe.");
+      const errorMessage = error.message.includes("Anthropic API Key")
+        ? "Failed to generate recipe: API key not configured. Please contact support."
+        : "Failed to generate recipe. Please try again.";
+      setRecipe(errorMessage);
+      setSaveStatus(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -84,12 +89,11 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
         isPublic: false
       });
       setSaveStatus("Recipe saved successfully!");
-      console.log("Recipe saved to Firestore!");
+    
       setRecipeName('');
       setRecipe('');
       setIngredients([]); // Clear ingredients after saving a recipe
-    } catch (error)
-    {
+    } catch (error) {
       console.error("Error saving recipe:", error);
       setSaveStatus("Failed to save recipe. Please try again.");
     }
@@ -136,7 +140,7 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
           />
           <button
             type="submit"
-            className="font-sans rounded-md border-none bg-orange-600 text-gray-50 w-36 text-sm font-medium px-4 py-2 hover:bg-orange-700 transition-colors md:w-full" // Changed to orange
+            className="font-sans rounded-md border-none bg-orange-600 text-gray-50 w-36 text-sm font-medium px-4 py-2 hover:bg-orange-700 transition-colors md:w-full"
           >
             {getAddIngredientButtonText()}
           </button>
@@ -161,14 +165,10 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
         </section>
       )}
 
-
-      {loading && (
-        <p className="text-center text-gray-600 mt-8">Seeing what I got for you boss...</p>
-      )}
+      {loading && <LoadingSpinner />} {/* Updated to use wave animation */}
 
       {recipe && (
         <section className="rounded-lg bg-gray-200 p-4 mt-8 md:p-6 shadow-md">
-          {/* New "Try Different Ingredients" button */}
           <button
             onClick={handleTryDifferentIngredients}
             className="mb-4 px-6 py-2 bg-orange-600 text-white rounded-md text-lg font-semibold hover:bg-orange-700 transition-colors shadow-md w-full"
@@ -176,7 +176,7 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
             Try Different Ingredients
           </button>
 
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">Generated Recipe</h2>
+          <h2 className="text-xl font-semibold mb-4 text-orange-800">Generated Recipe</h2>
           <div
             className="whitespace-pre-wrap break-words overflow-wrap-break-word font-sans leading-relaxed text-gray-800 text-base md:text-sm"
             aria-live="polite"

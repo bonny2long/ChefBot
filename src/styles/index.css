@@ -9,3 +9,18 @@ body {
   margin: 0;
   font-family: 'Inter', sans-serif;
 }
+
+.wave-container {
+  display: flex;
+  gap: 4px;
+  height: 20px;
+}
+.wave-bar {
+  width: 6px;
+  height: 100%;
+  animation: wave 1.2s ease-in-out infinite;
+}
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1.5); }
+}

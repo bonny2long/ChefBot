@@ -79,5 +79,5 @@ app.post('/claude-proxy', async (req, res) => {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Proxy server running on http://localhost:${PORT}`);
-  console.log("Remember to start your React development server (npm run dev) separately.");
+ 
 });
