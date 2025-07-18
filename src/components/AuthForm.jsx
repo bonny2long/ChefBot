@@ -1,8 +1,6 @@
 // src/components/AuthModal.jsx
 import React, { useState } from 'react';
-// Firebase auth methods are passed down from App.js via props,
-// so no direct imports like createUserWithEmailAndPassword, signInWithEmailAndPassword needed here.
-// auth is imported only for potential direct access if needed, but props are preferred.
+
 import { auth } from '../firebase';
 
 export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess, onLogin, onSignup }) {

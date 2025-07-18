@@ -1,6 +1,6 @@
 // src/components/BurgerMenu.jsx
 import React, { useState, useEffect, useRef } from 'react';
-// No direct Firebase imports needed here, as actions are passed via props
+
 
 export default function BurgerMenu({
   userId,

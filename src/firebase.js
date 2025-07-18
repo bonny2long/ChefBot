@@ -99,8 +99,7 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
     setIsAuthReady(true);
   });
 
-  // Removed initialSignInAttempt to prevent automatic anonymous sign-in
-  // Use signInAnonymouslyManually for explicit anonymous sign-in when needed
+
 
   return unsubscribe;
 }

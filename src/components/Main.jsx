@@ -165,7 +165,7 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
         </section>
       )}
 
-      {loading && <LoadingSpinner />} {/* Updated to use wave animation */}
+      {loading && <LoadingSpinner />}
 
       {recipe && (
         <section className="rounded-lg bg-gray-200 p-4 mt-8 md:p-6 shadow-md">
