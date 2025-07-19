@@ -106,6 +106,10 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
     setSaveStatus('');  // Clear any save status messages
   };
 
+  const removeIngredient = (indexToRemove) => {
+    setIngredients(ingredients.filter((_, index) => index !== indexToRemove));
+  };
+
   // Determine the dynamic text for the "Add ingredient" button
   const getAddIngredientButtonText = () => {
     const count = ingredients.length;
@@ -124,7 +128,7 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
       {/* Conditional rendering of ingredient input form */}
       {!recipe && ( // Only show if no recipe has been generated yet
         <form
-          className="flex flex-col justify-center items-center gap-4 md:flex-row md:h-10 md:gap-3 mb-8"
+          className="flex flex-col justify-center items-center gap-4 mb-8"
           onSubmit={e => {
             e.preventDefault();
             handleSubmit(new FormData(e.target));
@@ -136,11 +140,11 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
             placeholder="e.g., Mango"
             aria-label="Add-ingredient"
             name="ingredient"
-            className="rounded-md border border-gray-300 px-3 py-2 shadow-sm w-full max-w-xl md:flex-grow md:min-w-[150px] focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="rounded-md border border-gray-300 px-3 py-2 shadow-sm w-full max-w-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
           <button
             type="submit"
-            className="font-sans rounded-md border-none bg-orange-600 text-gray-50 w-full max-w-xs text-sm font-medium px-4 py-2 hover:bg-orange-700 transition-colors md:w-36"
+            className="font-sans rounded-md border-none bg-orange-600 text-gray-50 w-full max-w-xs text-sm font-medium px-4 py-2 hover:bg-orange-700 transition-colors"
           >
             {getAddIngredientButtonText()}
           </button>
@@ -149,16 +153,29 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
 
       {/* Conditional rendering of IngredientsList - NOW ONLY IF 4+ INGREDIENTS AND NO RECIPE */}
       {ingredients.length >= 4 && !recipe && (
-        <IngredientsList ingredients={ingredients} handleClick={handleClick} hasRecipeGenerated={!!recipe} />
+        <IngredientsList ingredients={ingredients} handleClick={handleClick} hasRecipeGenerated={!!recipe} removeIngredient={removeIngredient} />
       )}
 
       {/* Always show ingredients list if ingredients exist, but only show Get Recipe button if >= 4 */}
       {ingredients.length > 0 && ingredients.length < 4 && !recipe && (
         <section className="mt-8 mb-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Ingredients on hand:</h2>
-          <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
+          <ul className="text-gray-700 mb-6 space-y-2">
             {ingredients.map((ingredient, index) => (
-              <li key={index} className="text-lg">{ingredient}</li>
+              <li key={index} className="flex items-center justify-between text-lg bg-gray-50 px-3 py-2 rounded-md">
+                <span className="flex items-center">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
+                  {ingredient}
+                </span>
+                <button
+                  onClick={() => removeIngredient(index)}
+                  className="ml-2 text-gray-400 hover:text-red-500 transition-colors text-xl font-bold leading-none"
+                  aria-label={`Remove ${ingredient}`}
+                  title={`Remove ${ingredient}`}
+                >
+                  ×
+                </button>
+              </li>
             ))}
           </ul>
           {/* No "Get Recipe" button here */}

@@ -5,9 +5,17 @@
 @tailwind utilities;
 
 /* Any minimal global styles that are not easily handled by Tailwind can go here. */
+html {
+  font-size: 16px; /* Ensures consistent base font size across browsers/deployments */
+  -webkit-text-size-adjust: 100%; /* Prevents text scaling in mobile webkit browsers */
+  -ms-text-size-adjust: 100%; /* Prevents text scaling in mobile IE */
+}
+
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .wave-container {
