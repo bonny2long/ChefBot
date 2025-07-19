@@ -1,4 +1,4 @@
-// server.cjs (Ready for Render Deployment - ES Modules)
+// server.js (Ready for Render Deployment - ES Modules)
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
@@ -52,7 +52,7 @@ app.post('/claude-proxy', async (req, res) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022', 
+        model: 'claude-3-5-haiku-20241022', // Your desired Claude model
         max_tokens: 1024,
         temperature: 0.7,
         messages: [
