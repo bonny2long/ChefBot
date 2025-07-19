@@ -11,6 +11,12 @@ const PORT = process.env.PORT || 3000; // Use Render's PORT environment variable
 const CLAUDE_API_URL = process.env.CLAUDE_API_URL || 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+// Debug logging for Render deployment
+console.log('Render Debug: API Key loaded:', ANTHROPIC_API_KEY ? 'YES' : 'NO');
+if (ANTHROPIC_API_KEY) {
+  console.log('Render Debug: API Key prefix:', ANTHROPIC_API_KEY.substring(0, 10) + '...');
+}
+
 // Define a regex for allowed origins to include main domain and deploy previews
 // This regex matches:
 // - https://chefbonbon.netlify.app
