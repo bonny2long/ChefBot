@@ -124,7 +124,7 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
       {/* Conditional rendering of ingredient input form */}
       {!recipe && ( // Only show if no recipe has been generated yet
         <form
-          className="flex justify-center items-center gap-3 h-10 md:flex-col md:h-auto md:gap-4 mb-8"
+          className="flex flex-col justify-center items-center gap-4 md:flex-row md:h-10 md:gap-3 mb-8"
           onSubmit={e => {
             e.preventDefault();
             handleSubmit(new FormData(e.target));
@@ -136,11 +136,11 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
             placeholder="e.g., Mango"
             aria-label="Add-ingredient"
             name="ingredient"
-            className="rounded-md border border-gray-300 px-3 py-2 shadow-sm flex-grow min-w-[150px] max-w-xl md:w-full md:max-w-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="rounded-md border border-gray-300 px-3 py-2 shadow-sm w-full max-w-xl md:flex-grow md:min-w-[150px] focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
           <button
             type="submit"
-            className="font-sans rounded-md border-none bg-orange-600 text-gray-50 w-36 text-sm font-medium px-4 py-2 hover:bg-orange-700 transition-colors md:w-full"
+            className="font-sans rounded-md border-none bg-orange-600 text-gray-50 w-full max-w-xs text-sm font-medium px-4 py-2 hover:bg-orange-700 transition-colors md:w-36"
           >
             {getAddIngredientButtonText()}
           </button>
