@@ -1,6 +1,6 @@
 // src/utils/getRecipeFromClaude.js (Ready for Netlify Deployment)
 
-const API_URL = "http://localhost:3000/claude-proxy"; // Local development
+const API_URL = "https://chef-bonbon-api.onrender.com/claude-proxy";
 const CLAUDE_MODEL = "claude-3-5-haiku-20241022"; // This model is used by the backend
 
 const chefDialogs = [
