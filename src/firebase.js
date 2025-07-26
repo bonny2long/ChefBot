@@ -71,9 +71,7 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
 
         if (userProfileDoc.exists()) {
           usernameFromDb = userProfileDoc.data().username;
-          console.log("Fetched username from Firestore");
         } else {
-          console.log("User profile not found for UID");
           try {
             const defaultUsername = user.email || user.uid;
             await setDoc(userProfileDocRef, {
@@ -82,7 +80,6 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
               createdAt: new Date(),
             });
             usernameFromDb = defaultUsername;
-            console.log("Created default profile for UID:", user.uid, "Username:", defaultUsername);
           } catch (error) {
             console.error("Error creating default user profile:", error);
           }
@@ -93,7 +90,6 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
         onUserChange(user, null);
       }
     } else {
-      console.log("Auth state changed: User is signed out.");
       onUserChange(null, null);
     }
     setIsAuthReady(true);
@@ -108,7 +104,6 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
 export async function signInAnonymouslyManually() {
   try {
     const userCredential = await signInAnonymously(auth);
-    console.log("Signed in anonymously:", userCredential.user.uid);
     return userCredential.user;
   } catch (error) {
     console.error("Error signing in anonymously:", error);

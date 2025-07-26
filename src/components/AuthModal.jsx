@@ -39,12 +39,10 @@ export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess }) {
           email: email,
           createdAt: new Date(),
         });
-        console.log("User profile saved to Firestore for UID:", userCredential.user.uid, "Username:", username);
       }
       
       // Reload user to get latest displayName/profile data (important after updateProfile/Firestore save)
       await userCredential.user.reload();
-      console.log("Auth Success: UID:", auth.currentUser.uid, "DisplayName:", auth.currentUser.displayName, "Email:", auth.currentUser.email);
       
       onAuthSuccess(); // Notify App.js of success
       // onClose() is called by onAuthSuccess in App.js
@@ -85,7 +83,6 @@ export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess }) {
       }, { merge: true }); // Use merge to update if already exists
 
       await user.reload(); // Reload user to get latest displayName
-      console.log("Google Sign-In: UID:", auth.currentUser.uid, "DisplayName:", auth.currentUser.displayName, "Email:", auth.currentUser.email);
       onAuthSuccess(); // Notify App.js of success
       // onClose() is called by onAuthSuccess in App.js
     } catch (err) {
