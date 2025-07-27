@@ -37,48 +37,61 @@ export default function LikedRecipes({ userId, onGoHomeClick, onViewPublicFeedCl
 
     const q = query(publicRecipesCollectionRef);
 
+    let unsubscribeLikes = [];
+
     const unsubscribeRecipes = onSnapshot(q, async (snapshot) => {
       const fetchedRecipes = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         userLikeDocId: null, // Initialize, populated by onSnapshot
       }));
-      setLikedRecipes(fetchedRecipes);
+      
+      // Create a map to track all recipes
+      const allRecipesMap = new Map();
+      fetchedRecipes.forEach(recipe => {
+        allRecipesMap.set(recipe.id, recipe);
+      });
+      
       setLoading(false);
 
+      // Clean up previous like listeners
+      unsubscribeLikes.forEach(unsubscribe => unsubscribe());
+      unsubscribeLikes = [];
+
       // Set up real-time listeners for likes
-      const unsubscribeLikes = fetchedRecipes.map((recipe) => {
+      unsubscribeLikes = fetchedRecipes.map((recipe) => {
         const likesRef = collection(db, `artifacts/${appId}/public/data/recipes/${recipe.id}/likes`);
         return onSnapshot(likesRef, (likesSnapshot) => {
           const likesData = likesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           const userLike = likesData.find(like => like.userId === userId);
-          setLikedRecipes((prev) =>
-            prev
-              .map((r) =>
-                r.id === recipe.id
-                  ? { ...r, userLikeDocId: userLike ? userLike.id : null }
-                  : r
-              )
-              .filter((r) => r.userLikeDocId) // Only keep recipes the user has liked
-              .sort((a, b) => (b.sharedAt?.toDate() || 0) - (a.sharedAt?.toDate() || 0))
-          );
+          
+          // Update the recipe in our map
+          allRecipesMap.set(recipe.id, {
+            ...allRecipesMap.get(recipe.id),
+            userLikeDocId: userLike ? userLike.id : null
+          });
+          
+          // Filter and update the liked recipes list
+          const likedRecipesList = Array.from(allRecipesMap.values())
+            .filter((r) => r.userLikeDocId) // Only keep recipes the user has liked
+            .sort((a, b) => (b.sharedAt?.toDate() || 0) - (a.sharedAt?.toDate() || 0));
+          
+          setLikedRecipes(likedRecipesList);
         }, (err) => {
           console.error(`Error listening to likes for recipe ${recipe.id}:`, err);
           setError("Failed to load liked recipes.");
         });
       });
-
-      return () => {
-        unsubscribeRecipes();
-        unsubscribeLikes.forEach(unsubscribe => unsubscribe());
-      };
     }, (err) => {
       console.error("Error fetching liked recipes:", err);
       setError("Failed to load liked recipes. Please try again.");
       setLoading(false);
     });
 
-    return () => unsubscribeRecipes();
+    return () => {
+      unsubscribeRecipes();
+      unsubscribeLikes.forEach(unsubscribe => unsubscribe());
+    };
   }, [userId]);
 
   const handleUnlike = async (recipeId, userLikeDocId) => {
