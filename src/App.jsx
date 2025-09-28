@@ -1,49 +1,51 @@
 // src/App.jsx
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import Header from './components/Header';
-import BurgerMenu from './components/BurgerMenu';
-import AuthModal from './components/AuthModal';
-import MessageModal from './components/MessageModal';
+import React, { useState, useEffect, Suspense, lazy } from "react";
+import Header from "./components/Header";
+import BurgerMenu from "./components/BurgerMenu";
+import AuthModal from "./components/AuthModal";
+import MessageModal from "./components/MessageModal";
 
 // Firebase imports
-import { auth, setupAuthListener, signOut } from './firebase';
+import { auth, setupAuthListener, signOut } from "./firebase";
 
-const Main = lazy(() => import('./components/Main'));
-const SavedRecipes = lazy(() => import('./components/SavedRecipes'));
-const PublicFeed = lazy(() => import('./components/PublicFeed'));
-const LikedRecipes = lazy(() => import('./components/LikedRecipes'));
+const Main = lazy(() => import("./components/Main"));
+const SavedRecipes = lazy(() => import("./components/SavedRecipes"));
+const PublicFeed = lazy(() => import("./components/PublicFeed"));
+const LikedRecipes = lazy(() => import("./components/LikedRecipes"));
 
 export default function App() {
   const [userId, setUserId] = useState(null);
-  const [userName, setUserName] = useState('');
+  const [userName, setUserName] = useState("");
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
+  const [authMode, setAuthMode] = useState("login");
 
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
-    title: '',
-    message: ''
+    title: "",
+    message: "",
   });
 
-  const [currentViewMode, setCurrentViewMode] = useState('main');
+  const [currentViewMode, setCurrentViewMode] = useState("main");
 
   useEffect(() => {
     const unsubscribe = setupAuthListener((user, usernameFromDb) => {
       if (user) {
         setUserId(user.uid);
         if (user.isAnonymous) {
-          setUserName('Guest');
+          setUserName("Guest");
         } else {
-          setUserName(usernameFromDb || user.displayName || user.email || user.uid);
+          setUserName(
+            usernameFromDb || user.displayName || user.email || user.uid
+          );
         }
       } else {
         setUserId(null);
-        setUserName('');
-        setCurrentViewMode('main');
+        setUserName("");
+        setCurrentViewMode("main");
       }
-      setIsAuthReady(true); // Auth state is determined
+      setIsAuthReady(true);
     }, setIsAuthReady);
     return () => unsubscribe();
   }, []);
@@ -60,15 +62,20 @@ export default function App() {
 
   // AuthModal's onAuthSuccess handler
   const handleAuthSuccess = () => {
-    setShowAuthModal(false); // Close the auth modal
-    showMessageModal("Success", authMode === 'login' ? "Logged in successfully!" : "Account created and logged in!");
+    setShowAuthModal(false);
+    showMessageModal(
+      "Success",
+      authMode === "login"
+        ? "Logged in successfully!"
+        : "Account created and logged in!"
+    );
   };
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
       showMessageModal("Success", "Logged out successfully!");
-      setCurrentViewMode('main'); // Go back to home page after logout
+      setCurrentViewMode("main");
     } catch (error) {
       console.error("Logout error:", error);
       showMessageModal("Logout Failed", error.message);
@@ -76,18 +83,18 @@ export default function App() {
   };
 
   const openLoginModal = () => {
-    setAuthMode('login');
+    setAuthMode("login");
     setShowAuthModal(true);
   };
   const openSignupModal = () => {
-    setAuthMode('signup');
+    setAuthMode("signup");
     setShowAuthModal(true);
   };
 
-  const handleGoHomeClick = () => setCurrentViewMode('main');
-  const handleViewRecipesClick = () => setCurrentViewMode('savedRecipes');
-  const handleViewPublicFeedClick = () => setCurrentViewMode('publicFeed');
-  const handleViewLikedRecipesClick = () => setCurrentViewMode('likedRecipes');
+  const handleGoHomeClick = () => setCurrentViewMode("main");
+  const handleViewRecipesClick = () => setCurrentViewMode("savedRecipes");
+  const handleViewPublicFeedClick = () => setCurrentViewMode("publicFeed");
+  const handleViewLikedRecipesClick = () => setCurrentViewMode("likedRecipes");
 
   if (!isAuthReady) {
     return (
@@ -115,16 +122,41 @@ export default function App() {
       <Header userId={userId} userName={userName} />
 
       <div className="flex-grow flex justify-center items-start pt-32 pb-8 w-full">
-        <Suspense fallback={<p className="text-center text-gray-600 mt-8">Loading...</p>}>
-          {currentViewMode === 'main' && <Main userId={userId} isAuthReady={isAuthReady} showMessageModal={showMessageModal} />}
-          {currentViewMode === 'savedRecipes' && userId && <SavedRecipes userId={userId} onGoHomeClick={handleGoHomeClick} />}
-          {currentViewMode === 'savedRecipes' && !userId && (
-            <p className="text-center text-gray-600 mt-8">Please log in to view your saved recipes.</p>
+        <Suspense
+          fallback={
+            <p className="text-center text-gray-600 mt-8">Loading...</p>
+          }
+        >
+          {currentViewMode === "main" && (
+            <Main
+              userId={userId}
+              isAuthReady={isAuthReady}
+              showMessageModal={showMessageModal}
+            />
           )}
-          {currentViewMode === 'publicFeed' && <PublicFeed userId={userId} showMessageModal={showMessageModal} />}
-          {currentViewMode === 'likedRecipes' && userId && <LikedRecipes userId={userId} onGoHomeClick={handleGoHomeClick} onViewPublicFeedClick={handleViewPublicFeedClick} showMessageModal={showMessageModal} />}
-          {currentViewMode === 'likedRecipes' && !userId && (
-            <p className="text-center text-gray-600 mt-8">Please log in to view your liked recipes.</p>
+          {currentViewMode === "savedRecipes" && userId && (
+            <SavedRecipes userId={userId} onGoHomeClick={handleGoHomeClick} />
+          )}
+          {currentViewMode === "savedRecipes" && !userId && (
+            <p className="text-center text-gray-600 mt-8">
+              Please log in to view your saved recipes.
+            </p>
+          )}
+          {currentViewMode === "publicFeed" && (
+            <PublicFeed userId={userId} showMessageModal={showMessageModal} />
+          )}
+          {currentViewMode === "likedRecipes" && userId && (
+            <LikedRecipes
+              userId={userId}
+              onGoHomeClick={handleGoHomeClick}
+              onViewPublicFeedClick={handleViewPublicFeedClick}
+              showMessageModal={showMessageModal}
+            />
+          )}
+          {currentViewMode === "likedRecipes" && !userId && (
+            <p className="text-center text-gray-600 mt-8">
+              Please log in to view your liked recipes.
+            </p>
           )}
         </Suspense>
       </div>
@@ -132,7 +164,7 @@ export default function App() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        isLogin={authMode === 'login'}
+        isLogin={authMode === "login"}
         onAuthSuccess={handleAuthSuccess}
       />
 
