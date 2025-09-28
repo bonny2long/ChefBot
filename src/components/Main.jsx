@@ -38,11 +38,16 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
       );
       return;
     }
-  
+
     setLoading(true);
     setRecipe(''); // Clear previous recipe
     setRecipeName(''); // Clear recipe name
     setSaveStatus(''); // Clear save status
+
+    // Show immediate feedback for cached responses
+    const cacheKey = [...ingredients].sort().join(',').toLowerCase();
+    const isLikelyCached = localStorage.getItem(`recipe_cache_${cacheKey}`);
+
     try {
       const result = await getRecipeFromClaude(ingredients);
       setRecipe(result);

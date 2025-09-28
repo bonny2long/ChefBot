@@ -1,7 +1,11 @@
 // src/utils/getRecipeFromClaude.js (Ready for Netlify Deployment)
 
 const API_URL = "https://chef-bonbon-api.onrender.com/claude-proxy";
-const CLAUDE_MODEL = "claude-3-5-haiku-20241022"; // This model is used by the backend
+const CLAUDE_MODEL = "claude-3-5-sonnet-20241022"; // Upgraded model for faster, better responses
+
+// Simple in-memory cache for recent recipes
+const recipeCache = new Map();
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
 const chefDialogs = [
   "Bonjour! I'm Chef BonBon, and I’m ready to whip up a storm with your ingredients!",
@@ -22,7 +26,33 @@ function getRandomDialog(userName = null) {
 }
 
 export async function getRecipeFromClaude(ingredients, userName = null) {
-  const prompt = `You are Chef BonBon, an AI chef. Generate a creative and detailed recipe using only the following ingredients: ${ingredients.join(', ')}. Provide a list of ingredients with quantities, and step-by-step instructions. If an ingredient is unusual, suggest a common substitute. Make it delicious and easy to follow. Ensure the response starts directly with the recipe details (ingredients and instructions) without repeating the greeting, as it will be added separately.`;
+  // Create cache key from sorted ingredients to handle order variations
+  const cacheKey = [...ingredients].sort().join(',').toLowerCase();
+
+  // Check cache first
+  if (recipeCache.has(cacheKey)) {
+    const cachedData = recipeCache.get(cacheKey);
+    if (Date.now() - cachedData.timestamp < CACHE_DURATION) {
+      // Return cached recipe with fresh dialog
+      return `${getRandomDialog(userName)}\n\n${cachedData.recipe}`;
+    } else {
+      // Remove expired cache entry
+      recipeCache.delete(cacheKey);
+    }
+  }
+
+  const prompt = `As Chef BonBon, create a recipe using: ${ingredients.join(', ')}.
+
+Format:
+**Recipe Name**
+
+**Ingredients:**
+- [ingredient with quantity]
+
+**Instructions:**
+1. [step]
+
+Keep it concise but complete. No substitutes unless essential.`;
 
   try {
     const response = await fetch(API_URL, {
@@ -44,6 +74,19 @@ export async function getRecipeFromClaude(ingredients, userName = null) {
     // Expect 'content' array from Claude's response (as sent by server.cjs)
     if (result.content && result.content.length > 0 && result.content[0].type === 'text') {
       const recipeText = result.content[0].text;
+
+      // Cache the recipe (without the dialog)
+      recipeCache.set(cacheKey, {
+        recipe: recipeText,
+        timestamp: Date.now()
+      });
+
+      // Clean up cache if it gets too large (keep last 50 recipes)
+      if (recipeCache.size > 50) {
+        const firstKey = recipeCache.keys().next().value;
+        recipeCache.delete(firstKey);
+      }
+
       return `${getRandomDialog(userName)}\n\n${recipeText}`;
     } else {
       console.error("Unexpected proxy response structure (missing 'content' array or text type):", result);
