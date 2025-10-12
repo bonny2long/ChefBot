@@ -29,6 +29,11 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
+    // Allow localhost for development
+    if (origin && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+
     // Check if the origin matches our allowed regex
     if (allowedOriginRegex.test(origin)) {
       callback(null, true); // Allow the origin
