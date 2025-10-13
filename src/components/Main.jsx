@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import IngredientsList from './IngredientsList';
 import { getRecipeFromClaude } from '../utils/getRecipeFromClaude';
-import { addDoc, getPrivateRecipesCollectionRef } from '../firebase';
+import { supabase } from '../supabase';
 import LoadingSpinner from './LoadingSpinner'; // Updated component
 
 export default function Main({ userId, isAuthReady, showMessageModal }) {
@@ -79,22 +79,20 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
 
     setSaveStatus("Saving...");
     try {
-      const recipesCollectionRef = getPrivateRecipesCollectionRef(userId);
-      if (!recipesCollectionRef) {
-        setSaveStatus("Error: Could not get recipe collection reference.");
-        return;
-      }
+      const { error } = await supabase
+        .from('private_recipes')
+        .insert({
+          user_id: userId,
+          title: recipeName.trim(),
+          ingredients: JSON.stringify(ingredients),
+          instructions: recipe,
+          created_at: new Date().toISOString(),
+        });
 
-      await addDoc(recipesCollectionRef, {
-        recipeName: recipeName.trim(),
-        ingredients: ingredients,
-        recipeContent: recipe,
-        createdAt: new Date(),
-        userId: userId,
-        isPublic: false
-      });
+      if (error) throw error;
+
       setSaveStatus("Recipe saved successfully!");
-    
+
       setRecipeName('');
       setRecipe('');
       setIngredients([]); // Clear ingredients after saving a recipe

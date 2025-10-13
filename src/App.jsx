@@ -5,8 +5,8 @@ import BurgerMenu from "./components/BurgerMenu";
 import AuthModal from "./components/AuthModal";
 import MessageModal from "./components/MessageModal";
 
-// Firebase imports
-import { auth, setupAuthListener, signOut } from "./firebase";
+// Supabase imports
+import { auth, setupAuthListener, signOut } from "./supabase";
 
 const Main = lazy(() => import("./components/Main"));
 const SavedRecipes = lazy(() => import("./components/SavedRecipes"));

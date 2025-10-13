@@ -1,20 +1,6 @@
 // src/components/SavedRecipes.jsx
 import React, { useState, useEffect } from 'react';
-import {
-  getPrivateRecipesCollectionRef,
-  getPublicRecipesCollectionRef,
-  query,
-  onSnapshot,
-  auth,
-  db,
-  deleteDoc,
-  doc,
-  updateDoc,
-  addDoc,
-  getDocs,
-  appId,
-  where
-} from '../firebase';
+import { supabase, auth } from '../supabase';
 
 export default function SavedRecipes({ userId, onGoHomeClick }) {
   const [recipes, setRecipes] = useState([]);
@@ -34,43 +20,76 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
     setLoading(true);
     setError('');
 
-    const recipesCollectionRef = getPrivateRecipesCollectionRef(userId);
-    if (!recipesCollectionRef) {
-      setError("Could not retrieve recipe collection. Please try again.");
-      setLoading(false);
-      return;
-    }
+    // Fetch initial recipes
+    const fetchRecipes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('private_recipes')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
 
-    const q = query(recipesCollectionRef);
+        if (error) throw error;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedRecipes = [];
-      snapshot.forEach((doc) => {
-        fetchedRecipes.push({ id: doc.id, ...doc.data() });
-      });
-      fetchedRecipes.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
-      setRecipes(fetchedRecipes);
-      setLoading(false);
-    }, (err) => {
-      console.error("Error fetching recipes:", err);
-      setError("Failed to load recipes. Please try again.");
-      setLoading(false);
-    });
+        // Parse ingredients if stored as JSON string
+        const parsedRecipes = data.map(recipe => ({
+          ...recipe,
+          ingredients: typeof recipe.ingredients === 'string'
+            ? JSON.parse(recipe.ingredients)
+            : recipe.ingredients,
+          recipeName: recipe.title,
+          recipeContent: recipe.instructions,
+          createdAt: new Date(recipe.created_at),
+        }));
 
-    return () => unsubscribe();
+        setRecipes(parsedRecipes);
+      } catch (err) {
+        console.error("Error fetching recipes:", err);
+        setError("Failed to load recipes. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipes();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('private_recipes_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'private_recipes',
+          filter: `user_id=eq.${userId}`
+        },
+        () => {
+          fetchRecipes();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   const handleDeleteRecipe = async (recipeId) => {
     if (!userId) {
-   
       return;
     }
     setDeleteStatus(prev => ({ ...prev, [recipeId]: 'Deleting...' }));
     try {
-      const recipeDocRef = doc(db, `artifacts/${appId}/users/${userId}/recipes`, recipeId);
-      await deleteDoc(recipeDocRef);
+      const { error } = await supabase
+        .from('private_recipes')
+        .delete()
+        .eq('id', recipeId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
       setDeleteStatus(prev => ({ ...prev, [recipeId]: 'Deleted!' }));
-     
       setTimeout(() => setDeleteStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
     } catch (err) {
       console.error("Error deleting recipe:", err);
@@ -81,52 +100,60 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
 
   const handleShareRecipe = async (recipeId, currentIsPublic) => {
     if (!userId) {
-  
       return;
     }
 
     setShareStatus(prev => ({ ...prev, [recipeId]: currentIsPublic ? 'Unsharing...' : 'Sharing...' }));
 
     try {
-      const privateRecipeDocRef = doc(db, `artifacts/${appId}/users/${userId}/recipes`, recipeId);
-      const publicRecipesCollectionRef = getPublicRecipesCollectionRef();
+      const recipeToShare = recipes.find(r => r.id === recipeId);
 
       if (currentIsPublic) {
-        await updateDoc(privateRecipeDocRef, { isPublic: false });
+        // Update private recipe
+        await supabase
+          .from('private_recipes')
+          .update({ is_public: false })
+          .eq('id', recipeId)
+          .eq('user_id', userId);
 
-        const publicQuery = query(publicRecipesCollectionRef,
-          where('originalRecipeId', '==', recipeId),
-          where('sharedBy', '==', userId)
-        );
-        const publicSnapshot = await getDocs(publicQuery);
-        if (!publicSnapshot.empty) {
-          publicSnapshot.forEach(async (docToDelete) => {
-            await deleteDoc(doc(db, publicRecipesCollectionRef.path, docToDelete.id));
-         
-          });
-        }
+        // Remove from public recipes
+        await supabase
+          .from('public_recipes')
+          .delete()
+          .eq('original_recipe_id', recipeId)
+          .eq('user_id', userId);
 
         setShareStatus(prev => ({ ...prev, [recipeId]: 'Unshared successfully!' }));
-    
       } else {
-        await updateDoc(privateRecipeDocRef, { isPublic: true });
+        // Update private recipe
+        await supabase
+          .from('private_recipes')
+          .update({ is_public: true })
+          .eq('id', recipeId)
+          .eq('user_id', userId);
 
-        const recipeToShare = recipes.find(r => r.id === recipeId);
+        // Add to public recipes
         if (recipeToShare) {
-          const { id, ...dataToShare } = recipeToShare;
+          const { data: userData } = await supabase.auth.getUser();
+          const username = auth.currentUser?.displayName || userData?.user?.email || 'Anonymous';
 
-          await addDoc(publicRecipesCollectionRef, {
-            ...dataToShare,
-            isPublic: true,
-            sharedBy: userId,
-            sharedByUserName: auth.currentUser?.displayName || 'Anonymous',
-            originalRecipeId: recipeId,
-            sharedAt: new Date(),
-          });
+          await supabase
+            .from('public_recipes')
+            .insert({
+              user_id: userId,
+              username: username,
+              title: recipeToShare.title || recipeToShare.recipeName,
+              ingredients: typeof recipeToShare.ingredients === 'string'
+                ? recipeToShare.ingredients
+                : JSON.stringify(recipeToShare.ingredients),
+              instructions: recipeToShare.instructions || recipeToShare.recipeContent,
+              original_recipe_id: recipeId,
+              created_at: new Date().toISOString(),
+            });
         }
         setShareStatus(prev => ({ ...prev, [recipeId]: 'Shared successfully!' }));
-      
       }
+
       setTimeout(() => setShareStatus(prev => ({ ...prev, [recipeId]: '' })), 3000);
     } catch (err) {
       console.error("Error sharing/unsharing recipe:", err);
@@ -145,12 +172,10 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
 
   return (
     <section className="p-8 md:p-16 w-full max-w-3xl mx-auto">
-      {/* Changed heading color to orange */}
       <h2 className="text-2xl font-bold text-orange-600 mb-6">Your Saved Recipes</h2>
       {recipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center mt-8">
           <p className="text-center text-gray-600 mb-4">You haven't saved any recipes yet.</p>
-          {/* Ensure empty state button is orange */}
           <button
             onClick={onGoHomeClick}
             className="px-6 py-3 bg-orange-600 text-white rounded-md text-lg font-semibold hover:bg-orange-700 transition-colors shadow-md"
@@ -163,19 +188,18 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
           {recipes.map((recipe) => (
             <div key={recipe.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                {recipe.recipeName || 'Untitled Recipe'} {recipe.isPublic && <span className="text-sm font-normal text-green-600">(Public)</span>}
+                {recipe.recipeName || recipe.title || 'Untitled Recipe'} {recipe.is_public && <span className="text-sm font-normal text-green-600">(Public)</span>}
               </h3>
               <p className="text-gray-700 mb-2">
-                <span className="font-medium">Ingredients:</span> {recipe.ingredients.join(', ')}
+                <span className="font-medium">Ingredients:</span> {Array.isArray(recipe.ingredients) ? recipe.ingredients.join(', ') : recipe.ingredients}
               </p>
               <div className="whitespace-pre-wrap break-words font-sans leading-relaxed text-gray-800 text-base mb-4">
-                {recipe.recipeContent}
+                {recipe.recipeContent || recipe.instructions}
               </div>
               <p className="text-gray-500 text-xs mb-4">
-                Saved on: {recipe.createdAt?.toDate().toLocaleString()}
+                Saved on: {recipe.createdAt?.toLocaleString()}
               </p>
               <div className="flex items-center gap-2">
-                {/* Delete button - remains red */}
                 <button
                   onClick={() => handleDeleteRecipe(recipe.id)}
                   disabled={deleteStatus[recipe.id] === 'Deleting...'}
@@ -183,17 +207,16 @@ export default function SavedRecipes({ userId, onGoHomeClick }) {
                 >
                   {deleteStatus[recipe.id] === 'Deleting...' ? 'Deleting...' : 'Delete'}
                 </button>
-                {/* Share/Unshare button - remains blue/orange */}
                 <button
-                  onClick={() => handleShareRecipe(recipe.id, recipe.isPublic)}
+                  onClick={() => handleShareRecipe(recipe.id, recipe.is_public)}
                   disabled={shareStatus[recipe.id] === 'Sharing...' || shareStatus[recipe.id] === 'Unsharing...'}
                   className={`px-4 py-2 rounded-md text-sm transition-colors ${
-                    recipe.isPublic ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-500 hover:bg-blue-600'
+                    recipe.is_public ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-500 hover:bg-blue-600'
                   } text-white disabled:opacity-50`}
                 >
                   {shareStatus[recipe.id] === 'Sharing...' ? 'Sharing...' :
                    shareStatus[recipe.id] === 'Unsharing...' ? 'Unsharing...' :
-                   recipe.isPublic ? 'Unshare' : 'Share'}
+                   recipe.is_public ? 'Unshare' : 'Share'}
                 </button>
                 {shareStatus[recipe.id] && shareStatus[recipe.id] !== 'Sharing...' && shareStatus[recipe.id] !== 'Unsharing...' && (
                   <p className={`text-sm ${shareStatus[recipe.id].includes("Failed") ? 'text-red-600' : 'text-gray-700'}`}>

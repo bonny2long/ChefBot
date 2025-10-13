@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "@huggingface/inference": "^3.13.2",
+    "@supabase/supabase-js": "^2.75.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
-    "firebase": "^11.10.0",
     "node-fetch": "^3.3.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

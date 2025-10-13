@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  updateProfile // updateProfile is used here
-} from 'firebase/auth';
-import { auth, db, appId, setDoc, doc } from '../firebase'; // Import db, appId, setDoc, doc for Firestore operations
+  updateProfile,
+  supabase
+} from '../supabase';
 
 export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess }) {
   const [email, setEmail] = useState('');
@@ -21,45 +19,56 @@ export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess }) {
     e.preventDefault();
     setError('');
     setLoading(true);
-  
+
     try {
       let userCredential;
       if (isLogin) {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
+        userCredential = await signInWithEmailAndPassword(email, password);
       } else {
-        userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Set displayName during signup (Firebase Auth Profile)
+        userCredential = await createUserWithEmailAndPassword(email, password);
+
+        // Set displayName during signup
         await updateProfile(userCredential.user, {
-          displayName: username // Set displayName from username input
+          display_name: username
         });
-        // Save username to Firestore (User Profile)
-        const userProfileDocRef = doc(db, `artifacts/${appId}/users/${userCredential.user.uid}/profile/data`);
-        await setDoc(userProfileDocRef, {
-          username: username,
-          email: email,
-          createdAt: new Date(),
-        });
+
+        // Save username to Supabase user_profiles table
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: userCredential.user.uid,
+            username: username,
+            email: email,
+            created_at: new Date().toISOString(),
+          });
+
+        if (profileError) {
+          console.error("Error creating user profile:", profileError);
+        }
       }
-      
-      // Reload user to get latest displayName/profile data (important after updateProfile/Firestore save)
+
+      // Reload user to get latest data
       await userCredential.user.reload();
-      
+
       onAuthSuccess(); // Notify App.js of success
       // onClose() is called by onAuthSuccess in App.js
     } catch (err) {
       console.error("Authentication error:", err.message);
       let errorMessage = "An unknown error occurred.";
-      if (err.code === 'auth/email-already-in-use') {
+
+      // Supabase error handling
+      if (err.message?.includes('already registered')) {
         errorMessage = "This email is already in use.";
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (err.message?.includes('Invalid email')) {
         errorMessage = "Please enter a valid email address.";
-      } else if (err.code === 'auth/weak-password') {
+      } else if (err.message?.includes('Password') && err.message?.includes('6')) {
         errorMessage = "Password should be at least 6 characters.";
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      } else if (err.message?.includes('Invalid login credentials')) {
         errorMessage = "Invalid email or password.";
-      } else if (err.code === 'auth/operation-not-allowed') {
-        errorMessage = "Email/password sign-in is not enabled. Please contact support.";
+      } else if (err.message?.includes('Email not confirmed')) {
+        errorMessage = "Please confirm your email address.";
       }
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -70,25 +79,20 @@ export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess }) {
     setError('');
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      // For Google Sign-In, displayName is usually set automatically by Google
-      // But we can still save it to Firestore for consistency
-      const user = userCredential.user;
-      const userProfileDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
-      await setDoc(userProfileDocRef, {
-        username: user.displayName || user.email, // Use Google's displayName or email
-        email: user.email,
-        createdAt: new Date(),
-      }, { merge: true }); // Use merge to update if already exists
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
 
-      await user.reload(); // Reload user to get latest displayName
-      onAuthSuccess(); // Notify App.js of success
-      // onClose() is called by onAuthSuccess in App.js
+      if (error) throw error;
+
+      // Note: OAuth will redirect the user, so we don't need to handle success here
+      // The auth state listener will handle it after redirect
     } catch (err) {
       console.error("Google Sign-In error:", err.message);
       setError("Failed to sign in with Google. Please try again.");
-    } finally {
       setLoading(false);
     }
   };

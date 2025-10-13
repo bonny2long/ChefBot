@@ -1,18 +1,18 @@
 /* eslint-disable no-undef */
 // src/firebase.js
-import { initializeApp } from 'firebase/app';
+import { initializeApp } from "firebase/app";
 
 // Auth imports
 import {
   getAuth,
-  onAuthStateChanged,          
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
-  signInAnonymously,          
-  signInWithCustomToken        
-} from 'firebase/auth';
+  signInAnonymously,
+  signInWithCustomToken,
+} from "firebase/auth";
 
 // Firestore imports
 import {
@@ -27,10 +27,11 @@ import {
   onSnapshot,
   getDocs,
   updateDoc,
-  setDoc
-} from 'firebase/firestore';
+  setDoc,
+} from "firebase/firestore";
 
-const firebaseConfig = typeof __firebase_config !== 'undefined'
+const firebaseConfig = typeof __firebase_c;
+onfig !== "undefined"
   ? JSON.parse(__firebase_config)
   : {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -39,14 +40,15 @@ const firebaseConfig = typeof __firebase_config !== 'undefined'
       storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
       messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
       appId: import.meta.env.VITE_FIREBASE_APP_ID,
-      measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+      measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
     };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-export const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chefbonbon-app';
+export const appId =
+  typeof __app_id !== "undefined" ? __app_id : "default-chefbonbon-app";
 
 export const getPrivateRecipesCollectionRef = (userId) => {
   if (!userId) {
@@ -66,7 +68,10 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
       await user.reload(); // Ensure latest user data
       let usernameFromDb = null;
       try {
-        const userProfileDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
+        const userProfileDocRef = doc(
+          db,
+          `artifacts/${appId}/users/${user.uid}/profile/data`
+        );
         const userProfileDoc = await getDoc(userProfileDocRef);
 
         if (userProfileDoc.exists()) {
@@ -95,8 +100,6 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
     setIsAuthReady(true);
   });
 
-
-
   return unsubscribe;
 }
 
@@ -115,13 +118,13 @@ export async function signInAnonymouslyManually() {
 export {
   auth,
   db,
-  onAuthStateChanged,        
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
-  signInAnonymously,        
-  signInWithCustomToken,     
+  signInAnonymously,
+  signInWithCustomToken,
   addDoc,
   deleteDoc,
   query,
@@ -131,5 +134,5 @@ export {
   doc,
   updateDoc,
   collection,
-  setDoc
+  setDoc,
 };
