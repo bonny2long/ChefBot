@@ -113,6 +113,9 @@ VITE_FIREBASE_APP_ID="your-app-id"
 ANTHROPIC_API_KEY="sk-..."
 ```
 
+### 🚂 Deployment to Railway
+The backend is configured for deployment on **Railway**. See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for complete deployment instructions.
+
 ## 📱 User Journey
 
 ### For Guests

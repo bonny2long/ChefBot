@@ -1,20 +1,20 @@
-// server.js (Ready for Render Deployment - ES Modules)
+// server.js (Ready for Railway Deployment - ES Modules)
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
-import 'dotenv/config'; // Crucial for Render to load environment variables
+import 'dotenv/config'; // Crucial for Railway to load environment variables
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Use Render's PORT environment variable
+const PORT = process.env.PORT || 3000; // Use Railway's PORT environment variable
 
-// Ensure these are correctly loaded from Render's environment variables
+// Ensure these are correctly loaded from Railway's environment variables
 const CLAUDE_API_URL = process.env.CLAUDE_API_URL || 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-// Debug logging for Render deployment
-console.log('Render Debug: API Key loaded:', ANTHROPIC_API_KEY ? 'YES' : 'NO');
+// Debug logging for Railway deployment
+console.log('Railway Debug: API Key loaded:', ANTHROPIC_API_KEY ? 'YES' : 'NO');
 if (ANTHROPIC_API_KEY) {
-  console.log('Render Debug: API Key prefix:', ANTHROPIC_API_KEY.substring(0, 10) + '...');
+  console.log('Railway Debug: API Key prefix:', ANTHROPIC_API_KEY.substring(0, 10) + '...');
 }
 
 // Define a regex for allowed origins to include main domain and deploy previews
@@ -78,7 +78,7 @@ app.post('/claude-proxy', async (req, res) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Render Server: Claude API returned non-OK response:", response.status, response.statusText, data);
+      console.error("Railway Server: Claude API returned non-OK response:", response.status, response.statusText, data);
       const errorMessage = data.error?.message || 'Unknown error from Claude API';
       return res.status(response.status).json({ error: 'Claude API error', details: errorMessage });
     }
@@ -88,11 +88,11 @@ app.post('/claude-proxy', async (req, res) => {
     return res.json(data);
 
   } catch (err) {
-    console.error('Render Server: Error in /claude-proxy:', err);
+    console.error('Railway Server: Error in /claude-proxy:', err);
     res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Render Server is running on port ${PORT}`);
+  console.log(`Railway Server is running on port ${PORT}`);
 });
