@@ -4,6 +4,7 @@ import chefBot from "../assets/images/chef-icon.png";
 
 export default function Header({ userId, userName }) {
   const [greeting, setGreeting] = useState("");
+  const name = userName || (userId ? "Guest" : "there");
 
   useEffect(() => {
     const getGreetingText = () => {
@@ -34,15 +35,13 @@ export default function Header({ userId, userName }) {
         </span>
       </nav>
 
-      {userId && (
-        <div className="absolute bottom-2 right-4 text-gray-600 text-sm">
-          {greeting},{" "}
-          <span className="font-semibold text-orange-600">
-            {userName || "Guest"}
-          </span>
-          !
-        </div>
-      )}
+      <div className="absolute bottom-2 right-4 text-gray-600 text-sm">
+        {greeting},{" "}
+        <span className="font-semibold text-orange-600">
+          {name}
+        </span>
+        !
+      </div>
     </header>
   );
 }

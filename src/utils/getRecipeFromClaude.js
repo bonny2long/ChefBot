@@ -1,6 +1,7 @@
-// src/utils/getRecipeFromClaude.js (Ready for Netlify Deployment)
+// src/utils/getRecipeFromClaude.js (Ready for Deployment)
 
-const API_URL = "https://chef-bonbon-api.onrender.com/claude-proxy";
+// Use environment variable for API URL, fallback to localhost for development
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/claude-proxy";
 const CLAUDE_MODEL = "claude-3-5-sonnet-20241022"; // Upgraded model for faster, better responses
 
 // Simple in-memory cache for recent recipes

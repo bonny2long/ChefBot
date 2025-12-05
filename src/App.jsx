@@ -6,7 +6,7 @@ import AuthModal from "./components/AuthModal";
 import MessageModal from "./components/MessageModal";
 
 // Supabase imports
-import { auth, setupAuthListener, signOut } from "./supabase";
+import { setupAuthListener, signOut } from "./supabase";
 
 const Main = lazy(() => import("./components/Main"));
 const SavedRecipes = lazy(() => import("./components/SavedRecipes"));
@@ -73,7 +73,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await signOut();
       showMessageModal("Success", "Logged out successfully!");
       setCurrentViewMode("main");
     } catch (error) {

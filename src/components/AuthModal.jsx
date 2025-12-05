@@ -50,8 +50,9 @@ export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess }) {
       // Reload user to get latest data
       await userCredential.user.reload();
 
+      // Close modal and notify success
+      onClose();
       onAuthSuccess(); // Notify App.js of success
-      // onClose() is called by onAuthSuccess in App.js
     } catch (err) {
       console.error("Authentication error:", err.message);
       let errorMessage = "An unknown error occurred.";

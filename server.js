@@ -63,7 +63,7 @@ app.post('/claude-proxy', async (req, res) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022', // Upgraded to Sonnet for better performance
+        model: 'claude-sonnet-4-20250514', // Claude Sonnet 4 (latest)
         max_tokens: 2048, // Increased for more detailed recipes
         temperature: 0.9, // Higher temperature for more creative, faster responses
         messages: [

@@ -6,6 +6,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Debug: Check if credentials are loaded
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key loaded:', supabaseAnonKey ? 'YES' : 'NO');
+
 // Initialize Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -14,29 +18,74 @@ export const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chefb
 
 // Auth listener setup
 export function setupAuthListener(onUserChange, setIsAuthReady) {
-  // Get initial session
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
-    if (session?.user) {
-      const user = session.user;
-      await handleUserProfile(user, onUserChange);
-    } else {
-      onUserChange(null, null);
-    }
+  let isCancelled = false;
+  let isReady = false;
+
+  const markReady = () => {
+    if (isReady) return;
+    isReady = true;
+    clearTimeout(timeout);
+  };
+
+  // Set a timeout to prevent infinite loading
+  const timeout = setTimeout(() => {
+    if (isCancelled) return;
+    console.error('Supabase connection timeout - check your credentials in .env');
     setIsAuthReady(true);
-  });
+    onUserChange(null, null);
+  }, 10000); // 10 second timeout
+
+  // Get initial session
+  supabase.auth.getSession()
+    .then(async ({ data: { session }, error }) => {
+      if (isCancelled) return;
+      markReady();
+      
+      if (error) {
+        console.error('Supabase auth error:', error);
+        onUserChange(null, null);
+        setIsAuthReady(true);
+        return;
+      }
+
+      if (session?.user) {
+        const user = session.user;
+        await handleUserProfile(user, onUserChange);
+      } else {
+        onUserChange(null, null);
+      }
+      setIsAuthReady(true);
+    })
+    .catch((err) => {
+      if (isCancelled) return;
+      markReady();
+      console.error('Failed to get Supabase session:', err);
+      onUserChange(null, null);
+      setIsAuthReady(true);
+    });
 
   // Listen for auth changes
   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session?.user) {
-      const user = session.user;
-      await handleUserProfile(user, onUserChange);
-    } else {
-      onUserChange(null, null);
+    try {
+      if (isCancelled) return;
+      markReady();
+      if (session?.user) {
+        const user = session.user;
+        await handleUserProfile(user, onUserChange);
+      } else {
+        onUserChange(null, null);
+      }
+    } catch (err) {
+      console.error('Error in auth state change:', err);
     }
   });
 
   // Return unsubscribe function
-  return () => subscription.unsubscribe();
+  return () => {
+    isCancelled = true;
+    clearTimeout(timeout);
+    subscription.unsubscribe();
+  };
 }
 
 // Handle user profile fetching/creation
@@ -44,12 +93,20 @@ async function handleUserProfile(user, onUserChange) {
   let usernameFromDb = null;
 
   try {
-    // Try to fetch user profile
-    const { data: profile, error } = await supabase
-      .from('user_profiles')
-      .select('username, email')
-      .eq('user_id', user.id)
-      .single();
+    console.log('Fetching user profile for user ID:', user.id);
+    
+    // Try to fetch user profile with a timeout so we don't hang the UI
+    const { data: profile, error } = await withTimeout(
+      supabase
+        .from('user_profiles')
+        .select('username, email')
+        .eq('user_id', user.id)
+        .single(),
+      PROFILE_TIMEOUT_MS,
+      'profile fetch'
+    );
+
+    console.log('User profile query result:', { profile, error });
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = not found
       console.error('Error fetching user profile:', error);
@@ -59,7 +116,9 @@ async function handleUserProfile(user, onUserChange) {
 
     if (profile) {
       usernameFromDb = profile.username;
+      console.log('Username from database:', usernameFromDb);
     } else {
+      console.log('No profile found, creating default profile');
       // Create default profile
       const defaultUsername = user.email || user.id;
       const { error: insertError } = await supabase
@@ -80,6 +139,11 @@ async function handleUserProfile(user, onUserChange) {
 
     onUserChange(createUserObject(user), usernameFromDb);
   } catch (error) {
+    if (error?.message?.includes('timed out')) {
+      console.warn('Profile fetch timed out; proceeding without username');
+      onUserChange(createUserObject(user), null);
+      return;
+    }
     console.error('Error in handleUserProfile:', error);
     onUserChange(createUserObject(user), null);
   }
