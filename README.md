@@ -1,194 +1,292 @@
-# 🍳 ChefBot - Your AI-Powered Culinary Companion
+# ChefBot - AI-Powered Recipe Generator
 
-**ChefBot** is an intelligent recipe generator that transforms your available ingredients into delicious culinary creations! Powered by Claude AI, this modern web application helps you discover what to cook with whatever you have on hand, while building a community around shared culinary experiences.
+[![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-green.svg)](https://nodejs.org/)
+[![Supabase](https://img.shields.io/badge/Database-Supabase-brightgreen.svg)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind_CSS-38B2AC.svg)](https://tailwindcss.com/)
 
-![ChefBot Demo](https://img.shields.io/badge/Status-Live-brightgreen) ![React](https://img.shields.io/badge/React-18+-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-CSS-38B2AC)
+## Table of Contents
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Technical Stack](#technical-stack)
+- [Architecture & Database Migration](#architecture--database-migration)
+- [Installation & Setup](#installation--setup)
+- [Project Structure](#project-structure)
+- [API Integration](#api-integration)
+- [Security & Authentication](#security--authentication)
+- [Developer](#developer)
 
-## 🎯 What is ChefBot?
+##  Overview
 
-ChefBot solves the everyday problem: **"I have these ingredients, but what can I cook?"** 
+**ChefBot** is a full-stack web application that leverages artificial intelligence to generate personalized recipes based on user-provided ingredients. Built with modern web technologies, ChefBot features user authentication, real-time database operations, social features, and AI-powered content generation through Claude AI integration.
 
-Simply add your ingredients, and our AI chef "Chef BonBon" will create personalized recipes just for you. Whether you're a cooking novice or a seasoned chef, ChefBot makes meal planning effortless and inspiring.
+### Problem Solved
+ChefBot addresses the common challenge of deciding what to cook with available ingredients by providing AI-generated, creative recipe suggestions tailored to user inputs.
 
-## ✨ Key Features
+## Key Features
 
-### 🤖 **Smart Recipe Generation**
-- **AI-Powered**: Uses Claude AI to generate creative, unique recipes
-- **Ingredient-Based**: Add any ingredients you have on hand
-- **Flexible Input**: Works with any combination of ingredients
-- **Creative Suggestions**: Get recipes you never would have thought of
+### Core Functionality
+- **AI Recipe Generation**: Integration with Anthropic's Claude AI API for intelligent, context-aware recipe creation
+- **Ingredient Management**: Dynamic ingredient input system with real-time validation
+- **User Authentication**: Secure email/password authentication with custom username support
+- **Recipe Management**: Save, edit, delete, and organize personal recipe collections
+- **Social Features**: Public recipe feed with like/unlike functionality and community engagement
+- **Responsive Design**: Mobile-first approach with Tailwind CSS for cross-device compatibility
 
-### 👤 **User Experience**
-- **No Account Required**: Try ChefBot instantly as a guest
-- **Smart Ingredient Management**: 
-  - Add ingredients one by one
-  - Delete individual ingredients with X buttons
-  - Clean, card-based ingredient display
-- **Mobile-First Design**: Perfect experience on any device
-- **Fast & Responsive**: Built with modern React and Vite
+### User Experience
+- Guest access for immediate functionality without registration
+- Persistent user sessions with secure authentication
+- Real-time updates for likes and social interactions
+- Optimistic UI updates for instant feedback
+- Loading states and error handling for robust user experience
 
-### 🔐 **User Accounts & Authentication**
-- **Flexible Access**: Use as guest or create an account
-- **Email/Password Signup**: Secure Firebase authentication
-- **Custom Usernames**: Choose your own display name
-- **Persistent Sessions**: Stay logged in across visits
-
-### 📚 **Recipe Management**
-- **Save Favorites**: Keep your best recipes in "My Recipes"
-- **Public Sharing**: Share your creations with the community
-- **Recipe Feed**: Discover what others are cooking
-- **Like System**: Heart your favorite community recipes
-- **Personal Collections**: Access your saved and liked recipes anytime
-
-### 🌐 **Community Features**
-- **Public Feed**: Browse recipes shared by other users
-- **Social Interaction**: Like and discover popular recipes
-- **Recipe Inspiration**: Get ideas from the community's creations
-- **Share Your Success**: Make your recipes public for others to try
-
-## 🛠️ Technologies
+## Technical Stack
 
 ### Frontend
-- **React 18+** - Modern component-based UI
-- **Vite** - Lightning-fast development and building
-- **Tailwind CSS** - Utility-first styling for responsive design
+- **React 19.1** - Component-based UI architecture with hooks
+- **Vite** - Fast build tool and development server
+- **Tailwind CSS** - Utility-first CSS framework for responsive design
+- **JavaScript (ES6+)** - Modern JavaScript features and async/await patterns
 
-### Backend & AI
-- **Node.js + Express** - API proxy server
-- **Claude AI (Anthropic)** - Advanced language model for recipe generation
-- **Custom API Integration** - Seamless AI communication
+### Backend
+- **Node.js** - Server-side JavaScript runtime
+- **Express 5.1** - RESTful API framework
+- **CORS** - Cross-Origin Resource Sharing middleware
+- **dotenv** - Environment variable management
 
 ### Database & Authentication
-- **Firebase Authentication** - Secure user management
-- **Cloud Firestore** - Real-time NoSQL database
-- **Secure Data Model** - Protected user data with proper access controls
+- **Supabase** - PostgreSQL database with built-in authentication
+- **Row Level Security (RLS)** - Database-level security policies
+- **Real-time subscriptions** - Live data updates across clients
 
-## 🚀 Live Demo
+### AI Integration
+- **Anthropic Claude AI** - Advanced language model for recipe generation
+- **Custom API proxy** - Secure backend integration for API key management
 
-**Try ChefBot now**: [Your Deployment URL Here]
+### Development Tools
+- **ESLint** - Code quality and consistency
+- **Git** - Version control
+- **npm** - Package management
 
-### Quick Start - No Installation Required!
-1. Visit the live app
-2. Add some ingredients (e.g., "chicken", "rice", "tomatoes")
-3. Click "Get Recipe!" when you have 4+ ingredients
-4. Watch Chef BonBon create your personalized recipe!
+## Architecture & Database Migration
 
-## 💻 Local Development
+### Database Migration Achievement
+Successfully migrated the entire application from **Firebase/Firestore (NoSQL)** to **Supabase (PostgreSQL)**, including:
+
+#### Migration Highlights
+- **Schema Design**: Architected relational database schema from scratch based on Firebase's NoSQL document structure
+- **Data Modeling**: Converted hierarchical Firebase collections to normalized PostgreSQL tables
+- **Authentication Migration**: Transitioned from Firebase Auth to Supabase Auth
+- **Security Implementation**: Implemented Row Level Security (RLS) policies for data protection
+
+#### Database Schema
+```
+user_profiles
+├── id (UUID, Primary Key)
+├── user_id (UUID, Foreign Key → auth.users)
+├── username (TEXT)
+├── email (TEXT)
+└── timestamps
+
+private_recipes
+├── id (UUID, Primary Key)
+├── user_id (UUID, Foreign Key → auth.users)
+├── title, ingredients, instructions
+├── cuisine_type, cooking_time, difficulty
+└── timestamps
+
+public_recipes
+├── id (UUID, Primary Key)
+├── user_id (UUID, Foreign Key → auth.users)
+├── username, title, ingredients, instructions
+├── likes_count (INTEGER)
+└── timestamps
+
+recipe_likes
+├── id (UUID, Primary Key)
+├── user_id (UUID, Foreign Key → auth.users)
+├── recipe_id (UUID, Foreign Key → public_recipes)
+└── UNIQUE constraint on (user_id, recipe_id)
+
+recipe_comments
+├── id (UUID, Primary Key)
+├── recipe_id (UUID, Foreign Key → public_recipes)
+├── user_id (UUID, Foreign Key → auth.users)
+├── username, comment
+└── timestamp
+```
+
+#### Technical Improvements from Migration
+- **Performance**: Faster queries with PostgreSQL indexing
+- **Scalability**: Relational data model supports complex queries and joins
+- **Security**: Database-level RLS policies vs application-level security
+- **Real-time**: Built-in WebSocket support for live updates
+- **Cost Efficiency**: Optimized database structure reduces redundant data
+
+### Architecture Pattern
+```
+Frontend (React + Vite)
+    ↓
+    ├─→ Supabase Client (Direct Database Access)
+    │   ├─→ Authentication
+    │   ├─→ Database Queries (RLS Protected)
+    │   └─→ Real-time Subscriptions
+    │
+    └─→ Express Backend (API Proxy)
+        └─→ Claude AI API (Secure Key Management)
+```
+
+## Installation & Setup
 
 ### Prerequisites
-- Node.js (LTS version)
-- Firebase project
+- Node.js (v16 or higher)
+- npm or yarn
+- Supabase account
 - Anthropic API key
 
-### Quick Setup
+### Environment Variables
+Create a `.env` file in the root directory:
+
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# Anthropic API
+ANTHROPIC_API_KEY=sk-ant-your-api-key-here
+```
+
+### Installation Steps
+
 ```bash
 # Clone the repository
-git clone [your-repo-url]
+git clone https://github.com/yourusername/ChefBot.git
 cd ChefBot
 
 # Install dependencies
 npm install
 
-# Create environment file
-cp .env.example .env.local
-# Add your API keys to .env.local
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your credentials
 
-# Start development servers
-npm run dev        # Frontend (http://localhost:5173)
-npm run start      # Backend (http://localhost:3000)
+# Run database migrations
+# Execute SQL commands from SUPABASE_SETUP.md in Supabase SQL Editor
+
+# Start development server
+npm run dev          # Frontend (http://localhost:5173)
+
+# In a separate terminal, start backend
+npm run start        # Backend API (http://localhost:3000)
 ```
 
-### Environment Variables
-Create `.env.local` with:
-```env
-# Firebase Configuration
-VITE_FIREBASE_API_KEY="your-firebase-api-key"
-VITE_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
-VITE_FIREBASE_PROJECT_ID="your-project-id"
-VITE_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
-VITE_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
-VITE_FIREBASE_APP_ID="your-app-id"
+### Database Setup
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Navigate to SQL Editor in your Supabase dashboard
+3. Execute all SQL commands from `SUPABASE_SETUP.md` to create:
+   - Tables with proper relationships
+   - Row Level Security policies
+   - Database triggers and functions
+   - Indexes for optimized queries
 
-# Anthropic API
-ANTHROPIC_API_KEY="sk-..."
-```
-
-### 🚂 Deployment to Railway
-The backend is configured for deployment on **Railway**. See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for complete deployment instructions.
-
-## 📱 User Journey
-
-### For Guests
-1. **Instant Access** - No signup required
-2. **Add Ingredients** - Type in what you have
-3. **Generate Recipes** - Get AI-powered suggestions
-4. **Browse Community** - See what others are making
-
-### For Registered Users
-1. **All Guest Features** +
-2. **Save Recipes** - Build your personal cookbook
-3. **Share Creations** - Contribute to the community
-4. **Like & Collect** - Curate your favorite discoveries
-5. **Persistent Profile** - Your data stays with you
-
-## 🎨 Design Features
-
-- **Intuitive Interface** - Clean, modern design
-- **Responsive Layout** - Works perfectly on mobile, tablet, desktop
-- **Accessibility** - Proper ARIA labels and keyboard navigation
-- **Loading States** - Beautiful animations while generating recipes
-- **Error Handling** - Graceful error messages and recovery
-
-## 🔒 Privacy & Security
-
-- **Secure Authentication** - Firebase-backed user accounts
-- **Data Protection** - Personal recipes are private by default
-- **Optional Sharing** - You control what gets shared publicly
-- **No Tracking** - No unnecessary data collection
-
-## 🌟 What Makes ChefBot Special?
-
-1. **AI-Powered Creativity** - Not just database lookups, but truly creative recipe generation
-2. **Community-Driven** - Learn from other home cooks and share your discoveries
-3. **Zero Friction** - Works immediately without barriers
-4. **Ingredient-Focused** - Solves the real problem of "what to cook with what I have"
-5. **Mobile-Optimized** - Perfect for use while shopping or in the kitchen
-
-## 📂 Project Structure
+## Project Structure
 
 ```
 ChefBot/
 ├── src/
-│   ├── components/        # React components
-│   │   ├── Main.jsx       # Home page & recipe generation
-│   │   ├── PublicFeed.jsx # Community recipes
-│   │   ├── SavedRecipes.jsx # Personal recipe collection
-│   │   └── ...
+│   ├── components/
+│   │   ├── Main.jsx              # Recipe generation interface
+│   │   ├── AuthModal.jsx         # Authentication UI
+│   │   ├── SavedRecipes.jsx      # Personal recipe collection
+│   │   ├── LikedRecipes.jsx      # User's liked recipes
+│   │   ├── PublicFeed.jsx        # Community recipe feed
+│   │   ├── Header.jsx            # Navigation header
+│   │   ├── BurgerMenu.jsx        # Mobile navigation
+│   │   ├── IngredientsList.jsx   # Ingredient display component
+│   │   └── LoadingSpinner.jsx    # Loading state component
 │   ├── utils/
-│   │   └── getRecipeFromClaude.js # AI integration
-│   ├── firebase.js       # Database configuration
-│   └── App.jsx           # Main application
-├── server.js             # API proxy server
-├── server-local.cjs      # Local development server
-└── package.json
+│   │   └── getRecipeFromClaude.js # AI API integration
+│   ├── supabase.js               # Supabase client configuration
+│   ├── App.jsx                   # Main application component
+│   └── main.jsx                  # Application entry point
+├── server.js                     # Express API server
+├── server-local.cjs              # Local development server
+├── SUPABASE_SETUP.md            # Database schema documentation
+├── MIGRATION_SUMMARY.md         # Migration details
+├── package.json                 # Dependencies and scripts
+└── vite.config.js               # Vite configuration
 ```
 
-## 🤝 Contributing
+## API Integration
 
-We welcome contributions! Here are some ways to get involved:
+### Claude AI Integration
+- **Endpoint**: `/api/recipe` (POST)
+- **Functionality**: Proxies requests to Anthropic's Claude API
+- **Security**: API keys stored server-side, never exposed to client
+- **Error Handling**: Comprehensive error responses with fallback mechanisms
 
-- 🐛 Report bugs or request features via Issues
-- 🎨 Suggest UI/UX improvements
-- 💡 Propose new features
-- 📝 Improve documentation
-- 🧪 Add tests
+### Supabase Integration
+- **Direct Client Access**: Frontend communicates directly with Supabase
+- **Real-time Features**: WebSocket connections for live updates
+- **Optimistic Updates**: Immediate UI feedback with automatic rollback on errors
+- **Query Optimization**: Efficient joins and indexed queries
 
-## 📄 License
+## Security & Authentication
 
-This project is open source and available under the [MIT License](LICENSE).
+### Authentication Features
+- Email/password authentication via Supabase Auth
+- Secure session management with JWT tokens
+- Custom username support with profile creation
+- Guest access for non-authenticated users
+
+### Security Measures
+- **Row Level Security (RLS)**: Database-level access control
+- **API Key Protection**: Backend proxy prevents client-side API key exposure
+- **CORS Configuration**: Controlled cross-origin access
+- **Input Validation**: Client and server-side validation
+- **SQL Injection Prevention**: Parameterized queries via Supabase client
+
+### RLS Policies
+- Users can only read/write their own private recipes
+- Public recipes readable by all, modifiable only by owners
+- Likes and comments protected by user authentication
+- Profile data accessible only to the owner
+
+## Developer
+
+**Bonny Makaniankhondo**
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/bonny-makaniankhondo-bb95a3321/)
+
+### Technical Achievements
+- Architected and executed complete database migration from Firebase NoSQL to Supabase PostgreSQL
+- Designed relational database schema with proper normalization and indexing
+- Implemented Row Level Security policies for multi-tenant data isolation
+- Integrated AI API with secure backend proxy architecture
+- Built responsive, mobile-first UI with modern React patterns
+- Developed real-time features with optimistic UI updates
+
+### Skills Demonstrated
+- **Frontend**: React, JavaScript ES6+, Tailwind CSS, Vite
+- **Backend**: Node.js, Express, RESTful API design
+- **Database**: PostgreSQL, SQL, Database schema design, Data migration
+- **Cloud Services**: Supabase, Firebase (migration experience)
+- **AI Integration**: Anthropic Claude API, API proxy patterns
+- **Security**: Authentication, Authorization, RLS, API key management
+- **DevOps**: Environment configuration, Git version control
 
 ---
 
+## License
 
+This project is open source and available under the MIT License.
 
-*
+## Acknowledgments
+
+- **Anthropic** for Claude AI API
+- **Supabase** for database and authentication infrastructure
+- **React** and **Vite** communities for excellent documentation
+
+---
+
+**Built by Bonny Makaniankhondo**
