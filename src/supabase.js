@@ -6,9 +6,25 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Debug: Check if credentials are loaded
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Key loaded:', supabaseAnonKey ? 'YES' : 'NO');
+const PROFILE_TIMEOUT_MS = 8000;
+const DEBUG_AUTH = false;
+
+const debugLog = (...args) => {
+  if (DEBUG_AUTH) console.log(...args);
+};
+
+const withTimeout = async (promise, ms, label = 'operation') => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 // Initialize Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -93,7 +109,7 @@ async function handleUserProfile(user, onUserChange) {
   let usernameFromDb = null;
 
   try {
-    console.log('Fetching user profile for user ID:', user.id);
+    debugLog('Fetching user profile for user ID:', user.id);
     
     // Try to fetch user profile with a timeout so we don't hang the UI
     const { data: profile, error } = await withTimeout(
@@ -106,7 +122,7 @@ async function handleUserProfile(user, onUserChange) {
       'profile fetch'
     );
 
-    console.log('User profile query result:', { profile, error });
+    debugLog('User profile query result:', { profile, error });
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = not found
       console.error('Error fetching user profile:', error);
@@ -116,9 +132,9 @@ async function handleUserProfile(user, onUserChange) {
 
     if (profile) {
       usernameFromDb = profile.username;
-      console.log('Username from database:', usernameFromDb);
+      debugLog('Username from database:', usernameFromDb);
     } else {
-      console.log('No profile found, creating default profile');
+      debugLog('No profile found, creating default profile');
       // Create default profile
       const defaultUsername = user.email || user.id;
       const { error: insertError } = await supabase
