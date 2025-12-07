@@ -83,8 +83,8 @@ export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess }) {
       // Use production URL when not on localhost
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const redirectUrl = isLocalhost 
-        ? `${window.location.origin}/auth/callback`
-        : 'https://chefbonbon.netlify.app/auth/callback';
+        ? 'http://localhost:5173'
+        : 'https://chefbonbon.netlify.app';
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
