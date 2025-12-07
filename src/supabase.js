@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const PROFILE_TIMEOUT_MS = 8000;
+const PROFILE_TIMEOUT_MS = 2000;
 const DEBUG_AUTH = false;
 
 const debugLog = (...args) => {
@@ -56,11 +56,11 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
     .then(async ({ data: { session }, error }) => {
       if (isCancelled) return;
       markReady();
+      setIsAuthReady(true); // unblock UI as soon as we have a session result
       
       if (error) {
         console.error('Supabase auth error:', error);
         onUserChange(null, null);
-        setIsAuthReady(true);
         return;
       }
 
@@ -70,14 +70,12 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
       } else {
         onUserChange(null, null);
       }
-      setIsAuthReady(true);
     })
     .catch((err) => {
       if (isCancelled) return;
       markReady();
       console.error('Failed to get Supabase session:', err);
       onUserChange(null, null);
-      setIsAuthReady(true);
     });
 
   // Listen for auth changes
@@ -85,6 +83,7 @@ export function setupAuthListener(onUserChange, setIsAuthReady) {
     try {
       if (isCancelled) return;
       markReady();
+      setIsAuthReady(true); // ensure UI is not blocked on profile fetch
       if (session?.user) {
         const user = session.user;
         await handleUserProfile(user, onUserChange);
@@ -110,6 +109,8 @@ async function handleUserProfile(user, onUserChange) {
 
   try {
     debugLog('Fetching user profile for user ID:', user.id);
+    // Immediately surface user metadata while we fetch profile for perceived speed
+    onUserChange(createUserObject(user), null);
     
     // Try to fetch user profile with a timeout so we don't hang the UI
     const { data: profile, error } = await withTimeout(
@@ -167,10 +168,17 @@ async function handleUserProfile(user, onUserChange) {
 
 // Create Firebase-compatible user object
 function createUserObject(supabaseUser) {
+  const userMetadata = supabaseUser.user_metadata || {};
+  const displayNameFromMetadata =
+    userMetadata.full_name ||
+    userMetadata.name ||
+    userMetadata.display_name ||
+    null;
+
   return {
     uid: supabaseUser.id,
     email: supabaseUser.email,
-    displayName: supabaseUser.user_metadata?.display_name || null,
+    displayName: displayNameFromMetadata,
     isAnonymous: supabaseUser.is_anonymous || false,
     // Add reload method for compatibility
     reload: async () => {

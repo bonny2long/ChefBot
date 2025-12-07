@@ -29,6 +29,21 @@ export default function App() {
 
   const [currentViewMode, setCurrentViewMode] = useState("main");
 
+  const formatDisplayName = (user, usernameFromDb) => {
+    const usernameLooksLikeEmail =
+      usernameFromDb && usernameFromDb.includes("@");
+
+    const rawName =
+      (!usernameLooksLikeEmail && usernameFromDb) ||
+      user.displayName ||
+      user.email ||
+      user.uid;
+    if (!rawName) return "";
+    const trimmed = rawName.trim();
+    const firstName = trimmed.split(/\s+/)[0];
+    return firstName || trimmed;
+  };
+
   useEffect(() => {
     const unsubscribe = setupAuthListener((user, usernameFromDb) => {
       if (user) {
@@ -36,9 +51,7 @@ export default function App() {
         if (user.isAnonymous) {
           setUserName("Guest");
         } else {
-          setUserName(
-            usernameFromDb || user.displayName || user.email || user.uid
-          );
+          setUserName(formatDisplayName(user, usernameFromDb));
         }
       } else {
         setUserId(null);
