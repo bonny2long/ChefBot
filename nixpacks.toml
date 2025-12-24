@@ -1,0 +1,13 @@
+# Force Nixpacks to build from the server/ folder in this monorepo.
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = [
+  "cd server && npm ci --omit=dev"
+]
+
+[start]
+cmd = "cd server && node server.js"
