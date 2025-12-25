@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 const CLAUDE_API_URL =
   process.env.CLAUDE_API_URL || 'https://api.anthropic.com/v1/messages';
 
-export const generateRecipe = async (prompt, apiKey) => {
+export const generateRecipeText = async (prompt, apiKey) => {
   if (!prompt) throw new Error('Prompt is required.');
   if (!apiKey) throw new Error('Anthropic API Key is missing.');
 
@@ -17,7 +17,7 @@ export const generateRecipe = async (prompt, apiKey) => {
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2048,
-      temperature: 0.9,
+      temperature: 0.7,
       messages: [{ role: 'user', content: prompt }]
     })
   });
@@ -28,27 +28,27 @@ export const generateRecipe = async (prompt, apiKey) => {
     throw new Error(data.error?.message || 'Claude API error');
   }
 
-  return data;
+  const text = data?.content?.[0]?.text;
+  if (!text) throw new Error('Claude returned no text');
+
+  return text;
 };
 
 export const detectRecipeIntent = async (ingredients, apiKey) => {
   const prompt = `
-You are classifying user intent.
-
 Ingredients:
 ${ingredients.join(', ')}
 
-Respond with exactly one word:
-food or drink
+Is this FOOD or a DRINK?
+Respond with one word only.
 `;
 
-  const data = await generateRecipe(prompt, apiKey);
+  const text = await generateRecipeText(prompt, apiKey);
+  const intent = text.trim().toLowerCase();
 
-  const text = data?.content?.[0]?.text?.trim().toLowerCase();
-
-  if (!['food', 'drink'].includes(text)) {
-    throw new Error(`Invalid intent response: ${text}`);
+  if (!['food', 'drink'].includes(intent)) {
+    throw new Error(`Invalid intent: ${intent}`);
   }
 
-  return text;
+  return intent;
 };
