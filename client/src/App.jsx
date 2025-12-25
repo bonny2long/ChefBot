@@ -134,7 +134,8 @@ export default function App() {
 
       <Header userId={userId} userName={userName} />
 
-      <div className="flex-grow flex justify-center items-start pt-32 pb-8 w-full">
+     <div className="flex-grow flex justify-center items-start pt-2 pb-8 w-full">
+
         <Suspense
           fallback={
             <p className="text-center text-gray-600 mt-8">Loading...</p>
