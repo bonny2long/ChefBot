@@ -35,7 +35,7 @@ app.use(cors({
 app.use(express.json());
 
 // Use routes
-app.use('/', recipesRouter);
+app.use('/api', recipesRouter);
 
 app.listen(PORT, () => {
   console.log(`Railway Server is running on port ${PORT}`);
