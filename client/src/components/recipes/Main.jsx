@@ -1,21 +1,28 @@
 // src/components/recipes/Main.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import IngredientsList from './IngredientsList';
 import { getRecipeFromClaude } from '../../utils/api';
 import { supabase } from '../../lib/supabase';
 import LoadingSpinner from '../ui/LoadingSpinner';
-import CookingMethodModal from '../ui/CookingMethodModal';
+import RecipeContextModal from '../ui/RecipeContextModal';
 
 export default function Main({ userId, isAuthReady, showMessageModal }) {
   const [ingredients, setIngredients] = useState([]);
   const [recipe, setRecipe] = useState('');
   const [recipeName, setRecipeName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
+  const [recipeContext, setRecipeContext] = useState(() => {
+    const stored = sessionStorage.getItem('recipeContext');
+    if (!stored) return null;
 
-  // Cooking method flow
-  const [showCookingModal, setShowCookingModal] = useState(false);
-  const [pendingIngredients, setPendingIngredients] = useState([]);
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  });
 
   async function handleSubmit(formData) {
     const newIngredient = formData.get('ingredient');
@@ -34,55 +41,72 @@ export default function Main({ userId, isAuthReady, showMessageModal }) {
     setSaveStatus('');
   }
 
+  useEffect(() => {
+    const resetHandler = () => {
+      sessionStorage.removeItem('recipeContext');
+      setRecipeContext(null);
+      setIngredients([]);
+      setRecipe('');
+      setRecipeName('');
+      setSaveStatus('');
+      setLoading(false);
+      setLoadingMessage('');
+    };
+
+    window.addEventListener('recipe-mode-reset', resetHandler);
+    return () => window.removeEventListener('recipe-mode-reset', resetHandler);
+  }, []);
+
   async function handleClick() {
     if (ingredients.length < 4) {
       showMessageModal(
         'Missing Ingredients',
-        'Please add at least 4 ingredients to generate a recipe.'
+        'Please add at least 4 ingredients.'
       );
       return;
     }
 
+    const normalizedType =
+      typeof recipeContext?.type === 'string'
+        ? recipeContext.type.toLowerCase()
+        : null;
+
     setLoading(true);
+    setLoadingMessage('Understanding ingredients...');
+    const stage1 = setTimeout(
+      () => setLoadingMessage('Composing recipe...'),
+      1600
+    );
+    const stage2 = setTimeout(
+      () => setLoadingMessage('Final touches...'),
+      3800
+    );
+    const stage3 = setTimeout(
+      () => setLoadingMessage('Almost ready...'),
+      5800
+    );
     setRecipe('');
-    setRecipeName('');
     setSaveStatus('');
 
     try {
-const result = await getRecipeFromClaude(ingredients);
+      const result = await getRecipeFromClaude(
+        ingredients,
+        normalizedType === 'food' ? recipeContext.cookingMethod : null,
+        normalizedType
+      );
 
-if (result.needsCookingMethod) {
-  setPendingIngredients(ingredients);
-  setShowCookingModal(true);
-  setLoading(false); // 🔥 REQUIRED
-  return;
-}
-
-setRecipe(result.recipe);
-
+      setRecipe(result.recipe);
     } catch (error) {
-      console.error('Error generating recipe:', error);
-      setRecipe('Failed to generate recipe. Please try again.');
-      setSaveStatus('Failed to generate recipe.');
+      console.error(error);
+      setRecipe('Failed to generate recipe.');
     } finally {
+      clearTimeout(stage1);
+      clearTimeout(stage2);
+      clearTimeout(stage3);
       setLoading(false);
+      setLoadingMessage('');
     }
   }
-
-const handleCookingMethodSelect = async (method) => {
-  setShowCookingModal(false);
-  setLoading(true);
-
-  try {
-    const result = await getRecipeFromClaude(pendingIngredients, method);
-    setRecipe(result.recipe);
-  } catch (err) {
-    showMessageModal('Error', 'Failed to generate recipe.');
-  } finally {
-    setLoading(false);
-    setPendingIngredients([]);
-  }
-};
 
 
   const handleSaveRecipe = async () => {
@@ -136,6 +160,24 @@ const handleCookingMethodSelect = async (method) => {
     return `${count} ingredient(s) entered`;
   };
 
+  if (!recipeContext) {
+    return (
+      <RecipeContextModal
+        isOpen={true}
+        onSelect={(context) => {
+          sessionStorage.setItem('recipeContext', JSON.stringify(context));
+          setRecipeContext(context);
+          setIngredients([]);
+          setRecipe('');
+          setRecipeName('');
+          setSaveStatus('');
+          setLoadingMessage('');
+          window.dispatchEvent(new Event('recipe-mode-changed'));
+        }}
+      />
+    );
+  }
+
   return (
     <main className="p-8 md:p-16 w-full max-w-3xl mx-auto">
       {!recipe && (
@@ -169,28 +211,30 @@ const handleCookingMethodSelect = async (method) => {
         </form>
       )}
 
-     {/* Always show ingredients once there is at least one */}
-{ingredients.length > 0 && !recipe && (
-  <IngredientsList
-    ingredients={ingredients}
-    removeIngredient={removeIngredient}
-  />
-)}
+      {/* Always show ingredients once there is at least one */}
+      {ingredients.length > 0 && !recipe && (
+        <IngredientsList
+          ingredients={ingredients}
+          removeIngredient={removeIngredient}
+        />
+      )}
 
-{/* Only show Get Recipe button when ready */}
-{ingredients.length >= 4 && !recipe && (
-  <div className="flex justify-center mt-2">
-    <button
-      onClick={handleClick}
-      className="w-full max-w-xs px-6 py-3 rounded-md text-lg font-semibold bg-orange-600 text-white hover:bg-orange-700 transition-colors whitespace-nowrap"
-    >
-      Get Recipe!
-    </button>
-  </div>
-)}
+      {/* Only show Get Recipe button when ready */}
+      {ingredients.length >= 4 && !recipe && (
+        <div className="flex justify-center mt-2">
+          <button
+            onClick={handleClick}
+            disabled={loading}
+            className={`w-full max-w-xs px-6 py-3 rounded-md text-lg font-semibold text-white transition-colors whitespace-nowrap
+              ${loading ? 'bg-orange-400 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'}
+            `}
+          >
+            {loading ? 'Working...' : 'Get Recipe!'}
+          </button>
+        </div>
+      )}
 
-
-      {loading && <LoadingSpinner />}
+      {loading && <LoadingSpinner message={loadingMessage} />}
 
       {recipe && (
         <section className="rounded-lg bg-gray-200 p-4 mt-8 shadow-md">
@@ -233,11 +277,6 @@ const handleCookingMethodSelect = async (method) => {
         </section>
       )}
 
-      <CookingMethodModal
-        isOpen={showCookingModal}
-        onSelect={handleCookingMethodSelect}
-        onClose={() => setShowCookingModal(false)}
-      />
     </main>
   );
 }

@@ -5,6 +5,7 @@ import BurgerMenu from "./components/layout/BurgerMenu";
 import AuthModal from "./components/auth/AuthModal";
 import MessageModal from "./components/ui/MessageModal";
 
+
 // Supabase imports
 import { setupAuthListener, signOut } from "./lib/supabase";
 
@@ -43,6 +44,7 @@ export default function App() {
     const firstName = trimmed.split(/\s+/)[0];
     return firstName || trimmed;
   };
+
 
   useEffect(() => {
     const unsubscribe = setupAuthListener((user, usernameFromDb) => {
@@ -131,6 +133,7 @@ export default function App() {
         onViewLikedRecipesClick={handleViewLikedRecipesClick}
         currentViewMode={currentViewMode}
       />
+
 
       <Header userId={userId} userName={userName} />
 

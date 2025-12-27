@@ -1,15 +1,18 @@
 import express from 'express';
-import {
-  generateRecipeText,
-  detectRecipeIntent
-} from '../services/claudeService.js';
+import { generateRecipeText } from '../services/claudeService.js';
 
 const router = express.Router();
 
 router.post('/recipes', async (req, res) => {
   try {
-    const { ingredients, cookingMethod } = req.body;
+    const { ingredients, cookingMethod, type } = req.body;
     const apiKey = process.env.ANTHROPIC_API_KEY;
+    const normalizedType =
+      typeof type === 'string' && ['food', 'drink'].includes(type.toLowerCase())
+        ? type.toLowerCase()
+        : null;
+    const normalizedMethod =
+      typeof cookingMethod === 'string' ? cookingMethod.trim() : '';
 
     // Validation
     if (!Array.isArray(ingredients) || ingredients.length < 4) {
@@ -18,13 +21,20 @@ router.post('/recipes', async (req, res) => {
       });
     }
 
-    const intent = await detectRecipeIntent(ingredients, apiKey);
-    console.log('Recipe intent:', intent);
+    if (!normalizedType || !['food', 'drink'].includes(normalizedType)) {
+      return res.status(400).json({
+        error: 'Recipe type must be food or drink'
+      });
+    }
 
     /* =========================
-       🍸 DRINK
+       DRINK
        ========================= */
-    if (intent === 'drink') {
+    if (normalizedType === 'drink') {
+      if (normalizedMethod) {
+        console.warn('Ignoring cookingMethod for drink recipe');
+      }
+
       const prompt = `
 You are Chef BonBon, a professional bartender focused on balance and drinkability.
 
@@ -64,18 +74,14 @@ Why this works:
     }
 
     /* =========================
-       🍽 FOOD — Ask for method
+       FOOD
        ========================= */
-    if (!cookingMethod) {
-      return res.json({
-        recipeType: 'food',
-        needsCookingMethod: true
+    if (!normalizedMethod) {
+      return res.status(400).json({
+        error: 'Cooking method required for food recipes'
       });
     }
 
-    /* =========================
-       🍽 FOOD
-       ========================= */
     const prompt = `
 You are Chef BonBon, a thoughtful home cook.
 
@@ -90,7 +96,7 @@ Allowed pantry staples:
 - water
 
 Cooking method:
-${cookingMethod}
+${normalizedMethod}
 
 Rules:
 - You MUST use all listed ingredients
@@ -120,7 +126,6 @@ Why this works:
       recipeType: 'food',
       recipe: recipeText
     });
-
   } catch (err) {
     console.error('Recipe route error:', err);
     res.status(500).json({
