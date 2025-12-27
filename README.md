@@ -171,7 +171,7 @@ cp .env.example .env
 # Edit .env with your credentials
 
 # Run database migrations
-# Execute SQL commands from SUPABASE_SETUP.md in Supabase SQL Editor
+# Execute SQL commands from docs/SUPABASE_SETUP.md in Supabase SQL Editor
 
 # Start development server
 npm run dev          # Frontend (http://localhost:5173)
@@ -183,7 +183,7 @@ npm run start        # Backend API (http://localhost:3000)
 ### Database Setup
 1. Create a Supabase project at [supabase.com](https://supabase.com)
 2. Navigate to SQL Editor in your Supabase dashboard
-3. Execute all SQL commands from `SUPABASE_SETUP.md` to create:
+3. Execute all SQL commands from `docs/SUPABASE_SETUP.md` to create:
    - Tables with proper relationships
    - Row Level Security policies
    - Database triggers and functions
@@ -193,29 +193,25 @@ npm run start        # Backend API (http://localhost:3000)
 
 ```
 ChefBot/
-├── src/
-│   ├── components/
-│   │   ├── Main.jsx              # Recipe generation interface
-│   │   ├── AuthModal.jsx         # Authentication UI
-│   │   ├── SavedRecipes.jsx      # Personal recipe collection
-│   │   ├── LikedRecipes.jsx      # User's liked recipes
-│   │   ├── PublicFeed.jsx        # Community recipe feed
-│   │   ├── Header.jsx            # Navigation header
-│   │   ├── BurgerMenu.jsx        # Mobile navigation
-│   │   ├── IngredientsList.jsx   # Ingredient display component
-│   │   └── LoadingSpinner.jsx    # Loading state component
-│   ├── utils/
-│   │   └── getRecipeFromClaude.js # AI API integration
-│   ├── supabase.js               # Supabase client configuration
-│   ├── App.jsx                   # Main application component
-│   └── main.jsx                  # Application entry point
-├── server.js                     # Express API server
-├── server-local.cjs              # Local development server
-├── SUPABASE_SETUP.md            # Database schema documentation
-├── MIGRATION_SUMMARY.md         # Migration details
-├── package.json                 # Dependencies and scripts
-└── vite.config.js               # Vite configuration
+|- .github/
+|- client/
+|- dist/
+|- docs/
+|  |- MIGRATION_SUMMARY.md
+|  |- RAILWAY_DEPLOYMENT.md
+|  |- SUPABASE_SETUP.md
+|  |- SUPABASE_URGENT_SETUP.md
+|- server/
+|  |- routes/
+|  |- services/
+|  |- server.js
+|- netlify.toml
+|- nixpacks.toml
+|- railway.json
+|- README.md
 ```
+
+
 
 ## API Integration
 
