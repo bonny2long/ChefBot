@@ -3,6 +3,11 @@ import fetch from 'node-fetch';
 const CLAUDE_API_URL =
   process.env.CLAUDE_API_URL || 'https://api.anthropic.com/v1/messages';
 
+//=== Cache for recipe intents ===
+const intentCache = new Map();
+const INTENT_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+
 export const generateRecipeText = async (prompt, apiKey) => {
   if (!prompt) throw new Error('Prompt is required.');
   if (!apiKey) throw new Error('Anthropic API Key is missing.');
@@ -15,8 +20,8 @@ export const generateRecipeText = async (prompt, apiKey) => {
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 1100,
       temperature: 0.7,
       messages: [{ role: 'user', content: prompt }]
     })
@@ -35,20 +40,51 @@ export const generateRecipeText = async (prompt, apiKey) => {
 };
 
 export const detectRecipeIntent = async (ingredients, apiKey) => {
+  if (!Array.isArray(ingredients) || ingredients.length === 0) {
+    throw new Error('Ingredients are required for intent detection.');
+  }
+
+  const cacheKey = ingredients
+    .map(i => i.toLowerCase().trim())
+    .sort()
+    .join('|');
+
+  // 🔥 Cache hit
+  if (intentCache.has(cacheKey)) {
+    const cached = intentCache.get(cacheKey);
+
+    if (Date.now() - cached.timestamp < INTENT_CACHE_TTL) {
+      return cached.intent;
+    }
+
+    // Expired entry
+    intentCache.delete(cacheKey);
+  }
+
   const prompt = `
+You are classifying user intent.
+
 Ingredients:
 ${ingredients.join(', ')}
 
-Is this FOOD or a DRINK?
-Respond with one word only.
+Respond with exactly ONE word:
+food or drink
 `;
 
-  const text = await generateRecipeText(prompt, apiKey);
-  const intent = text.trim().toLowerCase();
+  const intent = await generateRecipeText(prompt, apiKey);
 
-  if (!['food', 'drink'].includes(intent)) {
-    throw new Error(`Invalid intent: ${intent}`);
+  const normalizedIntent = intent.trim().toLowerCase();
+
+  if (!['food', 'drink'].includes(normalizedIntent)) {
+    throw new Error(`Invalid intent response: ${intent}`);
   }
 
-  return intent;
+  //Save to cache
+  intentCache.set(cacheKey, {
+    intent: normalizedIntent,
+    timestamp: Date.now()
+  });
+
+  return normalizedIntent;
 };
+
