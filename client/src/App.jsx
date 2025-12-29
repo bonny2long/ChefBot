@@ -147,7 +147,6 @@ export default function App() {
           {currentViewMode === "main" && (
             <Main
               userId={userId}
-              isAuthReady={isAuthReady}
               showMessageModal={showMessageModal}
             />
           )}

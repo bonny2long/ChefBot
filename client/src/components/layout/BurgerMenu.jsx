@@ -16,6 +16,7 @@ export default function BurgerMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
+  const displayName = (userName && userName.trim()) || 'Guest';
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -48,6 +49,11 @@ export default function BurgerMenu({
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+          {userId && (
+            <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-100">
+              Signed in as <span className="font-semibold text-gray-900">{displayName}</span>
+            </div>
+          )}
           <button
             onClick={() => handleMenuItemClick(onGoHomeClick)}
             className={`block w-full text-left px-4 py-2 text-sm ${currentViewMode === 'main' ? 'bg-gray-100 text-gray-900 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}

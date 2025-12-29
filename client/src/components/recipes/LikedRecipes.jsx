@@ -142,14 +142,22 @@ export default function LikedRecipes({ userId, onGoHomeClick, onViewPublicFeedCl
     <section className="p-8 md:p-16 w-full max-w-3xl mx-auto">
       <h2 className="text-2xl font-bold text-orange-600 mb-6">Your Liked Recipes</h2>
       {likedRecipes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center mt-8">
-          <p className="text-center text-gray-600 mb-4">You haven't liked any recipes yet.</p>
+        <div className="flex flex-col items-center justify-center mt-8 gap-3">
+          <p className="text-center text-gray-600">You haven't liked any recipes yet.</p>
           <button
             onClick={() => onViewPublicFeedClick()}
-            className="px-6 py-3 bg-orange-600 text-white rounded-md text-lg font-semibold hover:bg-orange-700 transition-colors shadow-md"
+            className="px-6 py-3 bg-orange-600 text-white rounded-md text-lg font-semibold hover:bg-orange-700 transition-colors shadow-md w-full sm:w-auto"
           >
             Explore Public Feed
           </button>
+          {onGoHomeClick && (
+            <button
+              onClick={onGoHomeClick}
+              className="px-6 py-2 bg-gray-100 text-gray-800 rounded-md text-sm font-semibold hover:bg-gray-200 transition-colors w-full sm:w-auto"
+            >
+              Return Home
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid gap-6">

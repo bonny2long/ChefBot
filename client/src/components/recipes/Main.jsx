@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import RecipeContextModal from '../ui/RecipeContextModal';
 
-export default function Main({ userId, isAuthReady, showMessageModal }) {
+export default function Main({ userId, showMessageModal }) {
   const [ingredients, setIngredients] = useState([]);
   const [recipe, setRecipe] = useState('');
   const [recipeName, setRecipeName] = useState('');

@@ -86,7 +86,7 @@ export default function AuthModal({ isOpen, onClose, isLogin, onAuthSuccess }) {
         ? 'http://localhost:5173'
         : 'https://chefbonbon.netlify.app';
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl
