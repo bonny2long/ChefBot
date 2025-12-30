@@ -18,10 +18,10 @@
 
 ##  Overview
 
-**ChefBoBon** is a full-stack web application that leverages artificial intelligence to generate personalized recipes based on user-provided ingredients. Built with modern web technologies, ChefBoBon features user authentication, real-time database operations, social features, and AI-powered content generation through Claude AI integration.
+**ChefBonBon** is a full-stack web application that leverages artificial intelligence to generate personalized recipes based on user-provided ingredients. Built with modern web technologies, ChefBonBon features user authentication, real-time database operations, social features, and AI-powered content generation through Claude AI integration.
 
 ### Problem Solved
-ChefBoBon addresses the common challenge of deciding what to cook with available ingredients by providing AI-generated, creative recipe suggestions tailored to user inputs.
+ChefBonBon addresses the common challenge of deciding what to cook with available ingredients by providing AI-generated, creative recipe suggestions tailored to user inputs.
 
 ## Key Features
 
@@ -160,8 +160,8 @@ ANTHROPIC_API_KEY=sk-ant-your-api-key-here
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ChefBoBon.git
-cd ChefBoBon
+git clone https://github.com/yourusername/ChefBonBon.git
+cd ChefBonBon
 
 # Install dependencies
 npm install
@@ -192,7 +192,7 @@ npm run start        # Backend API (http://localhost:3000)
 ## Project Structure
 
 ```
-ChefBoBon/
+ChefBonBon/
 |- .github/
 |- client/
 |- dist/
